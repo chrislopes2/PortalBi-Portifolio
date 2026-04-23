@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Portifólio de Relatórios Power BI — acesse e compartilhe dashboards executivos com segurança." />
+  <title>Portifólio | Power BI Reports</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ── HEADER ─────────────────────────────────────────────── -->
+  <header class="header">
+    <div class="header__inner">
+
+      <div class="header__brand">
+        <svg class="brand__icon" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect width="32" height="32" rx="8" fill="url(#grad)"/>
+          <rect x="7"  y="16" width="4" height="10" rx="1" fill="#fff" opacity=".9"/>
+          <rect x="14" y="10" width="4" height="16" rx="1" fill="#fff"/>
+          <rect x="21" y="6"  width="4" height="20" rx="1" fill="#F59E0B"/>
+          <defs>
+            <linearGradient id="grad" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#1E293B"/><stop offset="1" stop-color="#0F172A"/>
+            </linearGradient>
+          </defs>
+        </svg>
+        <span class="brand__name">Portifólio</span>
+      </div>
+
+      <nav class="tab-nav" role="tablist">
+        <button class="tab-nav__btn active" data-tab="home"       role="tab" aria-selected="true">Home</button>
+        <button class="tab-nav__btn"         data-tab="dashboards"role="tab" aria-selected="false">
+          Dashboards
+          <span class="tab-badge" id="tab-lock-icon">🔒</span>
+        </button>
+        <!-- Admin — visível só após login -->
+        <button class="tab-nav__btn hidden" id="tab-admin-btn" data-tab="admin" role="tab" aria-selected="false">
+          Admin
+          <span class="tab-badge tab-badge--admin">⚙</span>
+        </button>
+      </nav>
+
+      <div class="header__actions">
+        <button id="btn-login"  class="btn btn--ghost">Entrar</button>
+        <button id="btn-logout" class="btn btn--ghost hidden">Sair</button>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- ══════════════════════════════════════════════════════════
+       TAB: HOME
+  ═══════════════════════════════════════════════════════════ -->
+  <main id="tab-home" class="tab-panel active">
+
+    <section class="hero">
+      <div class="hero__glow hero__glow--1"></div>
+      <div class="hero__glow hero__glow--2"></div>
+      <div class="hero__content">
+        <span class="hero__badge">Dashboard Intelligence</span>
+        <h1 class="hero__title">Seus dados,<br/><em>seu painel.</em></h1>
+        <p class="hero__sub">Acesse dashboards executivos em Power BI, organizados e compartilhados em um único lugar.</p>
+        <div class="hero__cta">
+          <button class="btn btn--primary btn--lg" id="hero-login-btn">Acessar Portal</button>
+          <button class="btn btn--ghost btn--lg" data-tab="dashboards">Ver Dashboards</button>
+        </div>
+      </div>
+      <div class="hero__visual">
+        <div class="mock-card">
+          <div class="mock-card__header">
+            <span class="mock-dot red"></span>
+            <span class="mock-dot yellow"></span>
+            <span class="mock-dot green"></span>
+            <span class="mock-card__title">Receita vs Meta · 2025</span>
+          </div>
+          <div class="mock-chart">
+            <div class="mock-bar" style="--h:55%;--c:#F59E0B"></div>
+            <div class="mock-bar" style="--h:72%;--c:#38BDF8"></div>
+            <div class="mock-bar" style="--h:48%;--c:#F59E0B"></div>
+            <div class="mock-bar" style="--h:91%;--c:#34D399"></div>
+            <div class="mock-bar" style="--h:67%;--c:#38BDF8"></div>
+            <div class="mock-bar" style="--h:83%;--c:#34D399"></div>
+            <div class="mock-bar" style="--h:77%;--c:#F59E0B"></div>
+          </div>
+          <div class="mock-kpis">
+            <div class="mock-kpi"><span class="kpi-val kpi-up">R$ 4.2M</span><span class="kpi-lbl">Receita</span></div>
+            <div class="mock-kpi"><span class="kpi-val">92%</span><span class="kpi-lbl">Meta</span></div>
+            <div class="mock-kpi"><span class="kpi-val kpi-up">+18%</span><span class="kpi-lbl">vs AA</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="stats">
+      <div class="stats__inner">
+        <div class="stat-item"><span class="stat-num" data-target="48">0</span><span class="stat-lbl">Dashboards</span></div>
+        <div class="stat-item"><span class="stat-num" data-target="12">0</span><span class="stat-lbl">Categorias</span></div>
+        <div class="stat-item"><span class="stat-num" data-target="320">0</span><span class="stat-lbl">Acessos / mês</span></div>
+        <div class="stat-item"><span class="stat-num" data-target="98">0</span><span class="stat-lbl">% Disponibilidade</span></div>
+      </div>
+    </section>
+
+    <section class="about">
+      <div class="about__inner">
+        <div class="about__text">
+          <h2 class="section__title">Inteligência de dados<br/>para decisões rápidas.</h2>
+          <p>O Portifólio centraliza todos os dashboards Power BI da organização, com controle de acesso, gestão de publicações e navegação intuitiva — direto no browser, sem instalação.</p>
+          <ul class="about__list">
+            <li>✦ Dashboards com interatividade total</li>
+            <li>✦ Publique novos reports sem aprovação técnica</li>
+            <li>✦ Gerencie tudo pelo painel Admin</li>
+            <li>✦ Acesso mobile-friendly</li>
+          </ul>
+        </div>
+        <div class="about__features">
+          <div class="feature-card"><div class="feature-icon">📊</div><h3>Power BI Embed</h3><p>Reports nativos com interatividade total.</p></div>
+          <div class="feature-card"><div class="feature-icon">🔐</div><h3>Acesso Seguro</h3><p>Login por credenciais corporativas.</p></div>
+          <div class="feature-card"><div class="feature-icon">⚙️</div><h3>Painel Admin</h3><p>Adicione e remova dashboards com um clique.</p></div>
+          <div class="feature-card"><div class="feature-icon">🌙</div><h3>Tema Executivo</h3><p>Interface dark para foco nos dados.</p></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ══════════════════════════════════════════════════════════
+       TAB: DASHBOARDS
+  ═══════════════════════════════════════════════════════════ -->
+  <main id="tab-dashboards" class="tab-panel" hidden>
+
+    <!-- Lock Screen -->
+    <div id="dash-lock" class="dash-lock">
+      <div class="dash-lock__box">
+        <div class="dash-lock__icon">🔒</div>
+        <h2>Acesso Restrito</h2>
+        <p>Faça login para visualizar os dashboards interativos.</p>
+        <button class="btn btn--primary btn--lg" id="lock-login-btn">Fazer Login</button>
+      </div>
+    </div>
+
+    <!-- Dashboard Area -->
+    <div id="dash-area" class="dash-area hidden">
+      <aside class="dash-sidebar">
+        <p class="dash-sidebar__label">Dashboards</p>
+        <ul class="dash-list" id="dash-list"></ul>
+      </aside>
+      <div class="dash-embed-wrap">
+        <div class="dash-embed-header">
+          <span id="dash-active-title">—</span>
+          <a id="dash-open-link" href="#" target="_blank" rel="noopener" class="btn btn--ghost" style="font-size:.78rem">Abrir no Power BI ↗</a>
+        </div>
+        <div class="dash-embed-container" id="dash-embed-container">
+          <div class="dash-placeholder" id="dash-placeholder">
+            <span class="dash-placeholder__icon">📊</span>
+            <p>Selecione um dashboard ao lado para visualizá-lo aqui.</p>
+          </div>
+          <iframe id="dash-iframe" class="dash-iframe hidden" title="Power BI Dashboard" allowfullscreen frameborder="0"></iframe>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ══════════════════════════════════════════════════════════
+       TAB: ADMIN
+  ═══════════════════════════════════════════════════════════ -->
+  <main id="tab-admin" class="tab-panel" hidden>
+    <div class="admin-wrap">
+
+      <!-- Add Form -->
+      <section class="admin-section">
+        <div class="admin-section__head">
+          <h2 class="admin-section__title">➕ Adicionar Dashboard</h2>
+        </div>
+        <form id="add-form" class="add-form" novalidate>
+          <div class="add-form__grid">
+            <div class="form-group">
+              <label for="a-title">Título <span class="req">*</span></label>
+              <input id="a-title" type="text" placeholder="Ex: Receita Mensal Q1 2025" />
+              <span class="field-err" id="a-err-title"></span>
+            </div>
+            <div class="form-group">
+              <label for="a-cat">Categoria <span class="req">*</span></label>
+              <select id="a-cat">
+                <option value="financeiro">Financeiro</option>
+                <option value="comercial">Comercial</option>
+                <option value="operacional">Operacional</option>
+                <option value="rh">RH</option>
+              </select>
+            </div>
+            <div class="form-group add-form__full">
+              <label for="a-url">URL Embed Power BI</label>
+              <input id="a-url" type="url" placeholder="https://app.powerbi.com/reportEmbed?reportId=..." />
+            </div>
+            <div class="form-group add-form__full">
+              <label for="a-desc">Descrição</label>
+              <textarea id="a-desc" rows="2" placeholder="Descreva o que esse dashboard mostra..."></textarea>
+            </div>
+          </div>
+          <div class="add-form__actions">
+            <button type="submit" class="btn btn--primary">Publicar Dashboard</button>
+            <span id="add-msg" class="add-msg hidden"></span>
+          </div>
+        </form>
+      </section>
+
+      <!-- Dashboard List -->
+      <section class="admin-section">
+        <div class="admin-section__head">
+          <h2 class="admin-section__title">📋 Dashboards Publicados</h2>
+          <span class="admin-count" id="admin-count">0 registros</span>
+        </div>
+
+        <!-- Search / Filter -->
+        <div class="admin-toolbar">
+          <input id="admin-search" type="search" placeholder="Buscar dashboard..." class="admin-search" />
+          <select id="admin-filter" class="admin-filter-sel">
+            <option value="all">Todas categorias</option>
+            <option value="financeiro">Financeiro</option>
+            <option value="comercial">Comercial</option>
+            <option value="operacional">Operacional</option>
+            <option value="rh">RH</option>
+          </select>
+        </div>
+
+        <div class="admin-table-wrap">
+          <table class="admin-table" id="admin-table">
+            <thead>
+              <tr>
+                <th>Título</th>
+                <th>Categoria</th>
+                <th>Data</th>
+                <th>URL</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="admin-tbody"></tbody>
+          </table>
+          <p class="admin-empty hidden" id="admin-empty">Nenhum dashboard encontrado.</p>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- ── FOOTER ─────────────────────────────────────────────── -->
+  <footer class="footer">
+    <div class="footer__inner">
+      <span class="brand__name" style="font-size:.95rem">Portifólio</span>
+      <span class="footer__copy">© 2025 · Power BI Reports Portal</span>
+    </div>
+  </footer>
+
+  <!-- ── LOGIN MODAL ────────────────────────────────────────── -->
+  <div id="modal-login" class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal__backdrop" id="modal-backdrop"></div>
+    <div class="modal__box">
+      <button class="modal__close" id="modal-close" aria-label="Fechar">&#x2715;</button>
+      <div class="modal__logo">
+        <svg viewBox="0 0 32 32" fill="none" width="40" xmlns="http://www.w3.org/2000/svg">
+          <rect width="32" height="32" rx="8" fill="#1E293B"/>
+          <rect x="7"  y="16" width="4" height="10" rx="1" fill="#94A3B8" opacity=".9"/>
+          <rect x="14" y="10" width="4" height="16" rx="1" fill="#fff"/>
+          <rect x="21" y="6"  width="4" height="20" rx="1" fill="#F59E0B"/>
+        </svg>
+      </div>
+      <h2 id="modal-title" class="modal__title">Bem-vindo de volta</h2>
+      <p class="modal__sub">Acesse o portal com suas credenciais</p>
+      <form id="login-form" class="login-form" novalidate>
+        <div class="form-group">
+          <label for="email">E-mail</label>
+          <input id="email" type="email" placeholder="seunome@empresa.com" autocomplete="username" />
+          <span class="field-err" id="err-email"></span>
+        </div>
+        <div class="form-group">
+          <label for="password">Senha</label>
+          <div class="input-wrap">
+            <input id="password" type="password" placeholder="••••••••" autocomplete="current-password" />
+            <button type="button" class="toggle-pw" id="toggle-pw" aria-label="Mostrar senha">👁</button>
+          </div>
+          <span class="field-err" id="err-pw"></span>
+        </div>
+        <div class="form-options">
+          <label class="check-label"><input type="checkbox" id="remember" /> Lembrar-me</label>
+          <a href="#" class="link-sm">Esqueci a senha</a>
+        </div>
+        <button type="submit" class="btn btn--primary btn--full" id="btn-submit">Entrar</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ── CONFIRM DELETE MODAL ───────────────────────────────── -->
+  <div id="modal-confirm" class="modal" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+    <div class="modal__backdrop" id="confirm-backdrop"></div>
+    <div class="modal__box modal__box--sm">
+      <h2 id="confirm-title" class="modal__title" style="font-size:1.15rem">Excluir Dashboard?</h2>
+      <p class="modal__sub" id="confirm-msg">Esta ação não pode ser desfeita.</p>
+      <div style="display:flex;gap:.75rem;margin-top:1.5rem">
+        <button class="btn btn--ghost btn--full" id="confirm-cancel">Cancelar</button>
+        <button class="btn btn--danger btn--full" id="confirm-ok">Excluir</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── EDIT MODAL ─────────────────────────────────────────── -->
+  <div id="modal-edit" class="modal" role="dialog" aria-modal="true" aria-labelledby="edit-title">
+    <div class="modal__backdrop" id="edit-backdrop"></div>
+    <div class="modal__box modal__box--wide">
+      <button class="modal__close" id="edit-close" aria-label="Fechar">&#x2715;</button>
+      <h2 id="edit-title" class="modal__title">Editar Dashboard</h2>
+      <p class="modal__sub">Altere os dados e salve.</p>
+      <form id="edit-form" class="login-form" novalidate>
+        <input type="hidden" id="edit-id" />
+        <div class="form-group">
+          <label for="e-title">Título</label>
+          <input id="e-title" type="text" />
+        </div>
+        <div class="form-group">
+          <label for="e-cat">Categoria</label>
+          <select id="e-cat">
+            <option value="financeiro">Financeiro</option>
+            <option value="comercial">Comercial</option>
+            <option value="operacional">Operacional</option>
+            <option value="rh">RH</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="e-url">URL Embed</label>
+          <input id="e-url" type="url" />
+        </div>
+        <div class="form-group">
+          <label for="e-desc">Descrição</label>
+          <textarea id="e-desc" rows="3"></textarea>
+        </div>
+        <button type="submit" class="btn btn--primary btn--full">Salvar Alterações</button>
+      </form>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
