@@ -54,17 +54,27 @@ const requestHandler = async (req, res) => {
     if (req.method === "POST" && urlPath === "/api/login") {
       const body = await parseBody(req);
       const user = db.users.find(u => u.email === body.email && u.password === body.password);
-      if (user) {
+
         // Obter dashboards permitidos
-        const userDashIds = db.permissions[user.id] || [];
-        const allowedDashboards = user.isAdmin 
+        const userDashIds = db.permissions[user?.id] || [];
+        const allowedDashboards = user?.isAdmin 
           ? db.dashboards 
           : db.dashboards.filter(d => userDashIds.includes(d.id));
-        
-        const { password, ...safeUser } = user;
-        return sendJSON(res, 200, { user: safeUser, dashboards: allowedDashboards });
+      if (user) {
+        res.writeHead(200);
+        res.end(JSON.stringify({
+          success: true,
+          user: { id: user.id, name: user.name, email: user.email, area: user.area, isAdmin: user.isAdmin },
+          dashboards: allowedDashboards
+        }));
+      } else {
+        res.writeHead(401);
+        res.end(JSON.stringify({ 
+          success: false, 
+          message: `Credenciais inválidas. DEBUG: Recebeu Email='${body.email}', Senha='${body.password}'. Tipo do req.body='${typeof req.body}'. Body parseado: ${JSON.stringify(body)}`
+        }));
       }
-      return sendJSON(res, 401, { error: "Credenciais inválidas" });
+      return;
     }
 
     if (req.method === "GET" && urlPath === "/api/users") {
