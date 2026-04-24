@@ -23,7 +23,7 @@ const MIME = {
   ".woff2": "font/woff2",
 };
 
-const { readDB, writeDB } = require("../db");
+const supabase = require("./supabase");
 
 function parseBody(req) {
   if (req.body) {
@@ -49,99 +49,128 @@ const requestHandler = async (req, res) => {
 
   // ── API Routes ────────────────────────────────────────────────
   if (urlPath.startsWith("/api/")) {
-    const db = readDB();
-
+    
+    // Login
     if (req.method === "POST" && urlPath === "/api/login") {
       const body = await parseBody(req);
-      const user = db.users.find(u => u.email === body.email && u.password === body.password);
+      const { data: user, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('email', body.email)
+        .eq('password', body.password)
+        .maybeSingle();
 
-      // Obter dashboards permitidos
-      const userDashIds = db.permissions[user?.id] || [];
-      const allowedDashboards = user?.isAdmin
-        ? db.dashboards
-        : db.dashboards.filter(d => userDashIds.includes(d.id));
       if (user) {
-        res.writeHead(200);
-        res.end(JSON.stringify({
+        // Buscar dashboards permitidos
+        let dashboards = [];
+        if (user.is_admin) {
+          const { data: allDashboards } = await supabase.from('dashboards').select('*').order('created_at', { ascending: false });
+          dashboards = allDashboards || [];
+        } else {
+          const { data: userPerms } = await supabase.from('permissions').select('dashboard_id').eq('user_id', user.id);
+          const dashIds = (userPerms || []).map(p => p.dashboard_id);
+          if (dashIds.length > 0) {
+             const { data: permittedDashboards } = await supabase.from('dashboards').select('*').in('id', dashIds);
+             dashboards = permittedDashboards || [];
+          }
+        }
+
+        return sendJSON(res, 200, {
           success: true,
-          user: { id: user.id, name: user.name, email: user.email, area: user.area, isAdmin: user.isAdmin },
-          dashboards: allowedDashboards
-        }));
-      } else {
-        res.writeHead(401);
-        res.end(JSON.stringify({
-          success: false,
-          message: `Credenciais inválidas. DEBUG: Recebeu Email='${body.email}', Senha='${body.password}'. Tipo do req.body='${typeof req.body}'. Body parseado: ${JSON.stringify(body)}`
-        }));
+          user: { id: user.id, name: user.name, email: user.email, area: user.area, isAdmin: user.is_admin },
+          dashboards: dashboards
+        });
       }
-      return;
+      return sendJSON(res, 401, { success: false, message: "Credenciais inválidas" });
     }
 
+    // Listar Usuários
     if (req.method === "GET" && urlPath === "/api/users") {
-      const safeUsers = db.users.map(({ password, ...u }) => u);
-      return sendJSON(res, 200, safeUsers);
+      const { data: users } = await supabase.from('users').select('id, name, email, area, is_admin').order('name');
+      const mapped = (users || []).map(u => ({ ...u, isAdmin: u.is_admin }));
+      return sendJSON(res, 200, mapped);
     }
 
+    // Criar Usuário
     if (req.method === "POST" && urlPath === "/api/users") {
       const body = await parseBody(req);
-      const newId = Date.now();
-      const newUser = { id: newId, ...body, isAdmin: false };
-      db.users.push(newUser);
-      db.permissions[newId] = [];
-      writeDB(db);
-      const { password, ...safeUser } = newUser;
-      return sendJSON(res, 201, safeUser);
+      const { data: newUser, error } = await supabase
+        .from('users')
+        .insert([{ 
+          name: body.name, 
+          email: body.email, 
+          password: body.password, 
+          area: body.area, 
+          is_admin: false 
+        }])
+        .select()
+        .single();
+      
+      if (error) return sendJSON(res, 400, { error: error.message });
+      return sendJSON(res, 201, { ...newUser, isAdmin: newUser.is_admin });
     }
 
+    // Deletar Usuário
     if (req.method === "DELETE" && urlPath.startsWith("/api/users/")) {
-      const id = parseInt(urlPath.split("/").pop(), 10);
-      db.users = db.users.filter(u => u.id !== id);
-      delete db.permissions[id];
-      writeDB(db);
+      const id = urlPath.split("/").pop();
+      const { error } = await supabase.from('users').delete().eq('id', id);
+      if (error) return sendJSON(res, 400, { error: error.message });
       return sendJSON(res, 200, { success: true });
     }
 
+    // Listar Dashboards
     if (req.method === "GET" && urlPath === "/api/dashboards") {
-      return sendJSON(res, 200, db.dashboards);
+      const { data: dashboards } = await supabase.from('dashboards').select('*').order('created_at', { ascending: false });
+      const mapped = (dashboards || []).map(d => ({ ...d, cat: d.category, desc: d.description, date: d.date_label, color: d.colors }));
+      return sendJSON(res, 200, mapped);
     }
-
+    
+    // Criar Dashboard
     if (req.method === "POST" && urlPath === "/api/dashboards") {
       const body = await parseBody(req);
-      const newDash = { id: Date.now(), ...body };
-      db.dashboards.unshift(newDash);
-      // Give access to admins
-      db.users.filter(u => u.isAdmin).forEach(u => {
-        if (!db.permissions[u.id]) db.permissions[u.id] = [];
-        db.permissions[u.id].push(newDash.id);
-      });
-      writeDB(db);
-      return sendJSON(res, 201, newDash);
+      const { data: newDash, error } = await supabase
+        .from('dashboards')
+        .insert([{ 
+          title: body.title, 
+          category: body.cat, 
+          description: body.desc, 
+          date_label: body.date, 
+          colors: body.color, 
+          embed_url: body.embedUrl 
+        }])
+        .select()
+        .single();
+
+      if (error) return sendJSON(res, 400, { error: error.message });
+      return sendJSON(res, 201, { ...newDash, cat: newDash.category, desc: newDash.description, date: newDash.date_label, color: newDash.colors });
     }
 
+    // Deletar Dashboard
     if (req.method === "DELETE" && urlPath.startsWith("/api/dashboards/")) {
-      const id = parseInt(urlPath.split("/").pop(), 10);
-      db.dashboards = db.dashboards.filter(d => d.id !== id);
-      // remover das permissoes
-      for (const uid in db.permissions) {
-        db.permissions[uid] = db.permissions[uid].filter(dashId => dashId !== id);
-      }
-      writeDB(db);
+      const id = urlPath.split("/").pop();
+      const { error } = await supabase.from('dashboards').delete().eq('id', id);
+      if (error) return sendJSON(res, 400, { error: error.message });
       return sendJSON(res, 200, { success: true });
     }
 
+    // Listar Permissões de um Usuário
     if (req.method === "GET" && urlPath.startsWith("/api/permissions/")) {
-      const userId = parseInt(urlPath.split("/").pop(), 10);
-      return sendJSON(res, 200, db.permissions[userId] || []);
+      const userId = urlPath.split("/").pop();
+      const { data: perms } = await supabase.from('permissions').select('dashboard_id').eq('user_id', userId);
+      return sendJSON(res, 200, (perms || []).map(p => p.dashboard_id));
     }
 
+    // Atualizar Permissões
     if (req.method === "POST" && urlPath === "/api/permissions") {
-      const body = await parseBody(req); // { userId, dashboardIds }
-      if (body.userId) {
-        db.permissions[body.userId] = body.dashboardIds || [];
-        writeDB(db);
-        return sendJSON(res, 200, { success: true });
+      const body = await parseBody(req);
+      if (!body.userId) return sendJSON(res, 400, { error: "userId required" });
+      await supabase.from('permissions').delete().eq('user_id', body.userId);
+      if (body.dashboardIds && body.dashboardIds.length > 0) {
+        const rows = body.dashboardIds.map(dId => ({ user_id: body.userId, dashboard_id: dId }));
+        const { error } = await supabase.from('permissions').insert(rows);
+        if (error) return sendJSON(res, 400, { error: error.message });
       }
-      return sendJSON(res, 400, { error: "userId required" });
+      return sendJSON(res, 200, { success: true });
     }
 
     return sendJSON(res, 404, { error: "Not Found" });
