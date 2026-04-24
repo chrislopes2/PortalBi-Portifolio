@@ -125,27 +125,56 @@ ul   { list-style: none; }
 .hero__sub  { color: var(--text-2); font-size: 1rem; line-height: 1.7; max-width: 44ch; margin-bottom: 2rem; }
 .hero__cta  { display: flex; gap: 1rem; flex-wrap: wrap; }
 
-/* Mock Card */
-.mock-card {
-  background: var(--bg-card); border: 1px solid var(--border);
-  border-radius: var(--radius-lg); padding: 1.5rem;
+/* Portfolio Profile */
+.portfolio-profile {
+  position: relative;
+  width: 100%;
+  max-width: 380px;
+  margin: 0 auto;
+  aspect-ratio: 1;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
   box-shadow: var(--shadow-card), var(--shadow-glow);
-  animation: float 4s ease-in-out infinite;
+  animation: float 5s ease-in-out infinite;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
 }
 @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
-.mock-card__header { display: flex; align-items: center; gap: .45rem; margin-bottom: 1.25rem; }
-.mock-dot { width: 10px; height: 10px; border-radius: 50%; }
-.mock-dot.red    { background: #EF4444; }
-.mock-dot.yellow { background: #F59E0B; }
-.mock-dot.green  { background: #22C55E; }
-.mock-card__title { margin-left: .5rem; font-size: .8rem; color: var(--text-2); font-weight: 600; }
-.mock-chart { display: flex; align-items: flex-end; gap: .5rem; height: 110px; margin-bottom: 1.25rem; }
-.mock-bar   { flex: 1; height: var(--h); background: var(--c); border-radius: 4px 4px 0 0; opacity: .85; }
-.mock-kpis  { display: flex; gap: 1rem; }
-.mock-kpi   { display: flex; flex-direction: column; gap: .2rem; }
-.kpi-val    { font-size: 1.1rem; font-weight: 700; }
-.kpi-val.kpi-up { color: var(--green); }
-.kpi-lbl    { font-size: .7rem; color: var(--text-3); text-transform: uppercase; letter-spacing: .06em; }
+.portfolio-profile__glow {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(245,158,11,0.15) 0%, transparent 100%);
+  pointer-events: none;
+}
+.portfolio-profile__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.hero__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-bottom: 2rem;
+}
+.tech-tag {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0.4rem 0.9rem;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+  color: var(--text-2);
+  transition: all var(--transition);
+}
+.tech-tag:hover {
+  background: var(--accent-dim);
+  border-color: var(--border-glow);
+  color: var(--accent);
+}
 
 /* ── Stats ───────────────────────────────────────────────────── */
 .stats { border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
@@ -317,6 +346,26 @@ ul   { list-style: none; }
 .url-cell { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-3); }
 .actions-cell { display: flex; gap: .5rem; }
 .admin-empty { text-align: center; padding: 3rem; color: var(--text-3); font-size: .88rem; }
+
+/* Perms Modal */
+.perms-list {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;
+  margin-top: 1rem; max-height: 300px; overflow-y: auto;
+}
+.perm-item {
+  display: flex; align-items: flex-start; gap: .75rem;
+  padding: .75rem; background: var(--bg-surface);
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  cursor: pointer; transition: border-color var(--transition);
+}
+.perm-item:hover { border-color: var(--accent); }
+.perm-item input { margin-top: .1rem; accent-color: var(--accent); cursor: pointer; }
+.perm-item__info { display: flex; flex-direction: column; gap: .1rem; }
+.perm-item__title { font-size: .85rem; font-weight: 600; color: var(--text-1); }
+.perm-item__cat { font-size: .65rem; color: var(--text-3); text-transform: uppercase; }
+
+.user-type { font-size: .7rem; padding: .15rem .5rem; border-radius: 99px; background: rgba(255,255,255,.05); border: 1px solid var(--border); }
+.user-type.admin { background: var(--danger-dim); color: var(--danger); border-color: rgba(239,68,68,.3); }
 
 /* ── Modal ───────────────────────────────────────────────────── */
 .modal {

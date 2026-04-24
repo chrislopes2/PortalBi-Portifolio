@@ -7,51 +7,25 @@ const state = {
   activeTab: "home",
   activeDash: null,
   pendingDeleteId: null,
-  reports: [
-    {
-      id: 1, title: "Receita vs Meta 2025", cat: "financeiro",
-      desc: "Acompanhamento mensal de receita bruta, líquida e atingimento de metas por BU.",
-      date: "Abr 2025",
-      color: ["#F59E0B","#FBBF24","#F59E0B","#EF4444","#F59E0B","#34D399","#38BDF8"],
-      embedUrl: "",
-    },
-    {
-      id: 2, title: "Pipeline Comercial", cat: "comercial",
-      desc: "Funil de vendas com conversão por etapa, ticket médio e forecast.",
-      date: "Abr 2025",
-      color: ["#38BDF8","#0EA5E9","#38BDF8","#7DD3FC","#38BDF8","#0EA5E9","#38BDF8"],
-      embedUrl: "",
-    },
-    {
-      id: 3, title: "Headcount & Turnover", cat: "rh",
-      desc: "Distribuição de colaboradores por área, evolução e índice de turnover.",
-      date: "Mar 2025",
-      color: ["#34D399","#10B981","#34D399","#6EE7B7","#10B981","#34D399","#059669"],
-      embedUrl: "",
-    },
-    {
-      id: 4, title: "OEE — Linha de Produção", cat: "operacional",
-      desc: "Eficiência global de equipamentos por turno, linha e tipo de parada.",
-      date: "Abr 2025",
-      color: ["#A78BFA","#8B5CF6","#A78BFA","#C4B5FD","#8B5CF6","#A78BFA","#7C3AED"],
-      embedUrl: "",
-    },
-    {
-      id: 5, title: "DRE Gerencial", cat: "financeiro",
-      desc: "Demonstração de resultado com drill por centro de custo vs orçamento.",
-      date: "Abr 2025",
-      color: ["#F59E0B","#EF4444","#F59E0B","#FBBF24","#F59E0B","#EF4444","#F59E0B"],
-      embedUrl: "",
-    },
-    {
-      id: 6, title: "NPS & Satisfação", cat: "comercial",
-      desc: "Net Promoter Score por canal, segmento e tendência dos últimos 12 meses.",
-      date: "Mar 2025",
-      color: ["#38BDF8","#34D399","#38BDF8","#34D399","#F59E0B","#38BDF8","#34D399"],
-      embedUrl: "",
-    },
-  ],
+  reports: [],
+  users: [],
+  activeUserIdForPerms: null,
 };
+
+async function fetchDashboards() {
+  try {
+    const res = await fetch("/api/dashboards");
+    state.reports = await res.json();
+  } catch (err) { console.error(err); }
+}
+
+async function fetchUsers() {
+  if (!state.user?.isAdmin) return;
+  try {
+    const res = await fetch("/api/users");
+    state.users = await res.json();
+  } catch (err) { console.error(err); }
+}
 
 // ── DOM Refs ──────────────────────────────────────────────────
 const btnLogin       = document.getElementById("btn-login");
@@ -78,6 +52,16 @@ const adminSearch        = document.getElementById("admin-search");
 const adminFilterSel     = document.getElementById("admin-filter");
 const addMsg             = document.getElementById("add-msg");
 
+const adminUserTbody     = document.getElementById("admin-user-tbody");
+const adminUserEmpty     = document.getElementById("admin-user-empty");
+const adminUserCount     = document.getElementById("admin-user-count");
+const btnAddUser         = document.getElementById("btn-add-user");
+const modalUser          = document.getElementById("modal-user");
+const userForm           = document.getElementById("user-form");
+const modalPerms         = document.getElementById("modal-perms");
+const permsList          = document.getElementById("perms-list");
+const btnSavePerms       = document.getElementById("btn-save-perms");
+
 // ── Tab System ────────────────────────────────────────────────
 function activateTab(name) {
   state.activeTab = name;
@@ -92,7 +76,10 @@ function activateTab(name) {
     panel.classList.toggle("active", isActive);
   });
   if (name === "dashboards") refreshDashView();
-  if (name === "admin")      renderAdminTable();
+  if (name === "admin") {
+    fetchDashboards().then(renderAdminTable);
+    if (state.user?.isAdmin) fetchUsers().then(renderUserTable);
+  }
   if (name === "home")       setupCounters();
 }
 
@@ -215,7 +202,7 @@ adminSearch.addEventListener("input",  renderAdminTable);
 adminFilterSel.addEventListener("change", renderAdminTable);
 
 // ── Add Dashboard ─────────────────────────────────────────────
-addForm.addEventListener("submit", (e) => {
+addForm.addEventListener("submit", async (e) => {
   e.preventDefault();
   const title = document.getElementById("a-title").value.trim();
   const cat   = document.getElementById("a-cat").value;
@@ -231,16 +218,21 @@ addForm.addEventListener("submit", (e) => {
   const colors = ["#F59E0B","#38BDF8","#34D399","#A78BFA","#EF4444","#F59E0B","#38BDF8"];
   const now = new Date().toLocaleDateString("pt-BR", { month: "short", year: "numeric" });
 
-  state.reports.unshift({
-    id: Date.now(), title, cat,
-    desc: desc || "Dashboard publicado pelo administrador.",
-    date: now, color: colors, embedUrl: url,
-  });
-
-  renderDashList();
-  renderAdminTable();
-  addForm.reset();
-  showAddMsg("Dashboard publicado com sucesso!", "success");
+  const payload = { title, cat, desc: desc || "Dashboard publicado pelo administrador.", date: now, color: colors, embedUrl: url };
+  
+  try {
+    const res = await fetch("/api/dashboards", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    if (res.ok) {
+      await fetchDashboards();
+      renderDashList();
+      renderAdminTable();
+      addForm.reset();
+      showAddMsg("Dashboard publicado com sucesso!", "success");
+    }
+  } catch(err) { console.error(err); }
 });
 
 function showAddMsg(text, type) {
@@ -258,20 +250,25 @@ function openConfirmDelete(id) {
   openModal(modalConfirm);
 }
 
-document.getElementById("confirm-ok").addEventListener("click", () => {
+document.getElementById("confirm-ok").addEventListener("click", async () => {
   if (state.pendingDeleteId === null) return;
-  state.reports = state.reports.filter((r) => r.id !== state.pendingDeleteId);
-  if (state.activeDash === state.pendingDeleteId) {
-    state.activeDash = null;
-    dashActiveTitle.textContent = "—";
-    dashIframe.classList.add("hidden");
-    dashPlaceholder.classList.remove("hidden");
-    dashPlaceholder.innerHTML = `<span class="dash-placeholder__icon">📊</span><p>Selecione um dashboard ao lado.</p>`;
-  }
-  state.pendingDeleteId = null;
-  renderDashList();
-  renderAdminTable();
-  closeModal(modalConfirm);
+  
+  try {
+    await fetch(`/api/dashboards/${state.pendingDeleteId}`, { method: "DELETE" });
+    await fetchDashboards();
+    
+    if (state.activeDash === state.pendingDeleteId) {
+      state.activeDash = null;
+      dashActiveTitle.textContent = "—";
+      dashIframe.classList.add("hidden");
+      dashPlaceholder.classList.remove("hidden");
+      dashPlaceholder.innerHTML = `<span class="dash-placeholder__icon">📊</span><p>Selecione um dashboard ao lado.</p>`;
+    }
+    state.pendingDeleteId = null;
+    renderDashList();
+    renderAdminTable();
+    closeModal(modalConfirm);
+  } catch(err) { console.error(err); }
 });
 
 document.getElementById("confirm-cancel").addEventListener("click", () => {
@@ -346,7 +343,7 @@ document.getElementById("toggle-pw").addEventListener("click", () => {
 });
 
 // ── Login ─────────────────────────────────────────────────────
-loginForm.addEventListener("submit", (e) => {
+loginForm.addEventListener("submit", async (e) => {
   e.preventDefault();
   document.getElementById("err-email").textContent = "";
   document.getElementById("err-pw").textContent    = "";
@@ -369,17 +366,38 @@ loginForm.addEventListener("submit", (e) => {
   btn.textContent = "Entrando…";
   btn.disabled = true;
 
-  setTimeout(() => {
-    state.isLoggedIn = true;
-    state.user = { email };
-    closeModal(modalLogin);
-    updateAuthUI();
-    // If user was waiting on dashboards tab, refresh it
-    if (state.activeTab === "dashboards") refreshDashView();
+  try {
+    const res = await fetch("/api/login", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password: pw })
+    });
+    
+    if (res.ok) {
+      const data = await res.json();
+      state.isLoggedIn = true;
+      state.user = data.user;
+      state.reports = data.dashboards;
+      
+      closeModal(modalLogin);
+      updateAuthUI();
+      if (state.activeTab === "dashboards") refreshDashView();
+      if (state.activeTab === "admin") {
+        renderAdminTable();
+        if (state.user.isAdmin) {
+          await fetchUsers();
+          renderUserTable();
+        }
+      }
+      loginForm.reset();
+    } else {
+      document.getElementById("err-pw").textContent = "Credenciais inválidas.";
+    }
+  } catch (err) {
+    document.getElementById("err-pw").textContent = "Erro de conexão.";
+  } finally {
     btn.textContent = "Entrar";
     btn.disabled = false;
-    loginForm.reset();
-  }, 900);
+  }
 });
 
 // ── Logout ────────────────────────────────────────────────────
@@ -411,6 +429,117 @@ function updateAuthUI() {
       activateTab("home");
     }
   }
+}
+
+// ── Users & Permissions (Admin) ───────────────────────────────
+
+function renderUserTable() {
+  if (!state.user?.isAdmin) return;
+  adminUserCount.textContent = `${state.users.length} usuário${state.users.length !== 1 ? "s" : ""}`;
+
+  if (!state.users.length) {
+    adminUserTbody.innerHTML = "";
+    adminUserEmpty.classList.remove("hidden");
+    return;
+  }
+  adminUserEmpty.classList.add("hidden");
+
+  adminUserTbody.innerHTML = state.users.map(u => `
+    <tr>
+      <td><strong>${u.name}</strong></td>
+      <td>${u.email}</td>
+      <td>${u.area}</td>
+      <td><span class="user-type ${u.isAdmin ? 'admin' : ''}">${u.isAdmin ? 'Admin' : 'Padrão'}</span></td>
+      <td class="actions-cell">
+        ${!u.isAdmin ? `<button class="btn btn--ghost btn--icon" data-perms="${u.id}" title="Permissões">🔑 Acessos</button>` : ''}
+        ${!u.isAdmin ? `<button class="btn btn--danger btn--icon" data-deluser="${u.id}" title="Excluir">🗑 Excluir</button>` : ''}
+      </td>
+    </tr>
+  `).join("");
+
+  adminUserTbody.querySelectorAll("[data-perms]").forEach(btn => {
+    btn.addEventListener("click", () => openPermsModal(parseInt(btn.dataset.perms, 10)));
+  });
+  adminUserTbody.querySelectorAll("[data-deluser]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const id = parseInt(btn.dataset.deluser, 10);
+      if (confirm("Tem certeza que deseja excluir este usuário?")) {
+        await fetch(`/api/users/${id}`, { method: "DELETE" });
+        await fetchUsers();
+        renderUserTable();
+      }
+    });
+  });
+}
+
+if (btnAddUser) {
+  btnAddUser.addEventListener("click", () => openModal(modalUser));
+  document.getElementById("user-close").addEventListener("click", () => closeModal(modalUser));
+  document.getElementById("user-backdrop").addEventListener("click", () => closeModal(modalUser));
+
+  userForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const name = document.getElementById("u-name").value.trim();
+    const email = document.getElementById("u-email").value.trim();
+    const password = document.getElementById("u-password").value.trim();
+    const area = document.getElementById("u-area").value;
+    
+    if (!name || !email || !password) return alert("Preencha todos os campos.");
+
+    const res = await fetch("/api/users", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, email, password, area })
+    });
+    if (res.ok) {
+      await fetchUsers();
+      renderUserTable();
+      closeModal(modalUser);
+      userForm.reset();
+    }
+  });
+}
+
+async function openPermsModal(userId) {
+  state.activeUserIdForPerms = userId;
+  const user = state.users.find(u => u.id === userId);
+  document.getElementById("perms-sub").textContent = `Defina acessos para ${user.name}`;
+  
+  // Buscar todas as permissoes deste usuario
+  const res = await fetch(`/api/permissions/${userId}`);
+  const userDashIds = await res.json();
+  
+  // Precisamos listar todos os dashboards do banco
+  // O admin tem state.reports completo
+  permsList.innerHTML = state.reports.map(r => `
+    <label class="perm-item">
+      <input type="checkbox" value="${r.id}" ${userDashIds.includes(r.id) ? 'checked' : ''} />
+      <div class="perm-item__info">
+        <span class="perm-item__title">${r.title}</span>
+        <span class="perm-item__cat">${r.cat}</span>
+      </div>
+    </label>
+  `).join("");
+  
+  openModal(modalPerms);
+}
+
+if (btnSavePerms) {
+  document.getElementById("perms-close").addEventListener("click", () => closeModal(modalPerms));
+  document.getElementById("perms-backdrop").addEventListener("click", () => closeModal(modalPerms));
+
+  btnSavePerms.addEventListener("click", async () => {
+    const checked = Array.from(permsList.querySelectorAll("input:checked")).map(i => parseInt(i.value, 10));
+    
+    const res = await fetch("/api/permissions", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId: state.activeUserIdForPerms, dashboardIds: checked })
+    });
+    
+    if (res.ok) {
+      closeModal(modalPerms);
+      alert("Permissões salvas!");
+    }
+  });
 }
 
 // ── Counter Animation ─────────────────────────────────────────

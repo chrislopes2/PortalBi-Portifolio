@@ -23,9 +23,119 @@ const MIME = {
   ".woff2":"font/woff2",
 };
 
-const httpServer = http.createServer((req, res) => {
-  const urlPath  = req.url === "/" ? "/index.html" : req.url;
-  const filePath = path.join(PUBLIC_DIR, urlPath.split("?")[0]);
+const { readDB, writeDB } = require("./db");
+
+function parseBody(req) {
+  return new Promise((resolve) => {
+    let body = "";
+    req.on("data", chunk => body += chunk.toString());
+    req.on("end", () => {
+      try { resolve(JSON.parse(body)); } catch { resolve({}); }
+    });
+  });
+}
+
+function sendJSON(res, status, data) {
+  res.writeHead(status, { "Content-Type": "application/json" });
+  res.end(JSON.stringify(data));
+}
+
+const httpServer = http.createServer(async (req, res) => {
+  const urlPath  = req.url.split("?")[0];
+
+  // ── API Routes ────────────────────────────────────────────────
+  if (urlPath.startsWith("/api/")) {
+    const db = readDB();
+
+    if (req.method === "POST" && urlPath === "/api/login") {
+      const body = await parseBody(req);
+      const user = db.users.find(u => u.email === body.email && u.password === body.password);
+      if (user) {
+        // Obter dashboards permitidos
+        const userDashIds = db.permissions[user.id] || [];
+        const allowedDashboards = user.isAdmin 
+          ? db.dashboards 
+          : db.dashboards.filter(d => userDashIds.includes(d.id));
+        
+        const { password, ...safeUser } = user;
+        return sendJSON(res, 200, { user: safeUser, dashboards: allowedDashboards });
+      }
+      return sendJSON(res, 401, { error: "Credenciais inválidas" });
+    }
+
+    if (req.method === "GET" && urlPath === "/api/users") {
+      const safeUsers = db.users.map(({ password, ...u }) => u);
+      return sendJSON(res, 200, safeUsers);
+    }
+
+    if (req.method === "POST" && urlPath === "/api/users") {
+      const body = await parseBody(req);
+      const newId = Date.now();
+      const newUser = { id: newId, ...body, isAdmin: false };
+      db.users.push(newUser);
+      db.permissions[newId] = [];
+      writeDB(db);
+      const { password, ...safeUser } = newUser;
+      return sendJSON(res, 201, safeUser);
+    }
+
+    if (req.method === "DELETE" && urlPath.startsWith("/api/users/")) {
+      const id = parseInt(urlPath.split("/").pop(), 10);
+      db.users = db.users.filter(u => u.id !== id);
+      delete db.permissions[id];
+      writeDB(db);
+      return sendJSON(res, 200, { success: true });
+    }
+
+    if (req.method === "GET" && urlPath === "/api/dashboards") {
+      return sendJSON(res, 200, db.dashboards);
+    }
+    
+    if (req.method === "POST" && urlPath === "/api/dashboards") {
+      const body = await parseBody(req);
+      const newDash = { id: Date.now(), ...body };
+      db.dashboards.unshift(newDash);
+      // Give access to admins
+      db.users.filter(u => u.isAdmin).forEach(u => {
+        if (!db.permissions[u.id]) db.permissions[u.id] = [];
+        db.permissions[u.id].push(newDash.id);
+      });
+      writeDB(db);
+      return sendJSON(res, 201, newDash);
+    }
+
+    if (req.method === "DELETE" && urlPath.startsWith("/api/dashboards/")) {
+      const id = parseInt(urlPath.split("/").pop(), 10);
+      db.dashboards = db.dashboards.filter(d => d.id !== id);
+      // remover das permissoes
+      for (const uid in db.permissions) {
+        db.permissions[uid] = db.permissions[uid].filter(dashId => dashId !== id);
+      }
+      writeDB(db);
+      return sendJSON(res, 200, { success: true });
+    }
+
+    if (req.method === "GET" && urlPath.startsWith("/api/permissions/")) {
+      const userId = parseInt(urlPath.split("/").pop(), 10);
+      return sendJSON(res, 200, db.permissions[userId] || []);
+    }
+
+    if (req.method === "POST" && urlPath === "/api/permissions") {
+      const body = await parseBody(req); // { userId, dashboardIds }
+      if (body.userId) {
+        db.permissions[body.userId] = body.dashboardIds || [];
+        writeDB(db);
+        return sendJSON(res, 200, { success: true });
+      }
+      return sendJSON(res, 400, { error: "userId required" });
+    }
+
+    return sendJSON(res, 404, { error: "Not Found" });
+  }
+
+  // ── Static Files ──────────────────────────────────────────────
+  const staticPath = urlPath === "/" ? "/index.html" : urlPath;
+  const filePath = path.join(PUBLIC_DIR, staticPath);
 
   fs.readFile(filePath, (err, data) => {
     if (err) {
