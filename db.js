@@ -1,7 +1,8 @@
 const fs = require('fs');
 const path = require('path');
 
-const dbPath = path.join(__dirname, 'data', 'db.json');
+const isVercel = process.env.VERCEL === "1";
+const dbPath = isVercel ? '/tmp/db.json' : path.join(__dirname, 'data', 'db.json');
 
 const defaultData = {
   users: [

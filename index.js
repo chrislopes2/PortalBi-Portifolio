@@ -40,7 +40,7 @@ function sendJSON(res, status, data) {
   res.end(JSON.stringify(data));
 }
 
-const httpServer = http.createServer(async (req, res) => {
+const requestHandler = async (req, res) => {
   const urlPath  = req.url.split("?")[0];
 
   // ── API Routes ────────────────────────────────────────────────
@@ -150,9 +150,14 @@ const httpServer = http.createServer(async (req, res) => {
   });
 });
 
-httpServer.listen(PORT, () => {
-  process.stderr.write(`[PortalBi] HTTP server running at http://localhost:${PORT}\n`);
-});
+if (require.main === module) {
+  const httpServer = http.createServer(requestHandler);
+  httpServer.listen(PORT, () => {
+    process.stderr.write(`[PortalBi] HTTP server running at http://localhost:${PORT}\n`);
+  });
+}
+
+module.exports = requestHandler;
 
 // ── MCP stdio Transport ───────────────────────────────────────
 
