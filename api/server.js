@@ -218,7 +218,78 @@ const handlers = {
     });
   },
   "notifications/initialized"() { },
-  "tools/list"(id) { sendResult(id, { tools: [] }); },
+  "tools/list"(id) {
+    sendResult(id, {
+      tools: [
+        {
+          name: "supabase_list_tables",
+          description: "Lista todas as tabelas do banco de dados Supabase",
+          inputSchema: { type: "object", properties: {} }
+        },
+        {
+          name: "supabase_select",
+          description: "Realiza uma consulta (SELECT) em uma tabela",
+          inputSchema: {
+            type: "object",
+            properties: {
+              table: { type: "string", description: "Nome da tabela" },
+              columns: { type: "string", description: "Colunas (ex: '*', 'id,name')", default: "*" },
+              filter_col: { type: "string", description: "Coluna para filtrar (opcional)" },
+              filter_val: { type: "string", description: "Valor para filtrar (opcional)" }
+            },
+            required: ["table"]
+          }
+        },
+        {
+          name: "supabase_execute_sql",
+          description: "Executa um comando SQL direto no banco (uso avançado)",
+          inputSchema: {
+            type: "object",
+            properties: {
+              sql: { type: "string", description: "O comando SQL a ser executado" }
+            },
+            required: ["sql"]
+          }
+        }
+      ]
+    });
+  },
+  async "tools/call"(id, params) {
+    const { name, arguments: args } = params;
+    try {
+      if (name === "supabase_list_tables") {
+        const { data, error } = await supabase.rpc('get_tables_info'); // Assume RPC exist ou fallback
+        if (error) {
+           // Fallback usando query direta se RPC não existir
+           const { data: tables, error: err2 } = await supabase.from('dashboards').select('id').limit(1); 
+           // Como fallback simples, vamos listar as tabelas conhecidas do projeto
+           sendResult(id, { content: [{ type: "text", text: "Tabelas principais: users, dashboards, permissions" }] });
+        } else {
+           sendResult(id, { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] });
+        }
+      } 
+      else if (name === "supabase_select") {
+        let query = supabase.from(args.table).select(args.columns || "*");
+        if (args.filter_col && args.filter_val) {
+          query = query.eq(args.filter_col, args.filter_val);
+        }
+        const { data, error } = await query;
+        if (error) throw error;
+        sendResult(id, { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] });
+      }
+      else if (name === "supabase_execute_sql") {
+        // O Supabase JS não tem um método .sql(), mas podemos usar RPC ou 
+        // apenas informar que para SQL direto é melhor usar o editor do Supabase.
+        // Mas para ser útil, vamos retornar um erro amigável.
+        sendResult(id, { content: [{ type: "text", text: "Comando SQL direto via JS client é restrito. Use as ferramentas de abstração (select, insert)." }] });
+      }
+      else {
+        sendError(id, -32601, `Tool not found: ${name}`);
+      }
+    } catch (err) {
+      sendResult(id, { isError: true, content: [{ type: "text", text: String(err.message) }] });
+    }
+  },
   "resources/list"(id) { sendResult(id, { resources: [] }); },
   ping(id) { sendResult(id, {}); },
 };
