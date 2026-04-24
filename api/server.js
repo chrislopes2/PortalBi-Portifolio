@@ -8,7 +8,7 @@ const path     = require("path");
 
 // ── HTTP Static Server ────────────────────────────────────────
 
-const PUBLIC_DIR = path.join(__dirname, "public");
+const PUBLIC_DIR = path.join(__dirname, "..");
 const PORT       = process.env.PORT || 3000;
 
 const MIME = {
@@ -23,7 +23,7 @@ const MIME = {
   ".woff2":"font/woff2",
 };
 
-const { readDB, writeDB } = require("./db");
+const { readDB, writeDB } = require("../db");
 
 function parseBody(req) {
   if (req.body) {
@@ -148,8 +148,7 @@ const requestHandler = async (req, res) => {
   }
 
   // ── Static Files ──────────────────────────────────────────────
-  const staticPath = urlPath === "/" ? "/index.html" : urlPath;
-  const filePath = path.join(PUBLIC_DIR, staticPath);
+  const filePath = path.join(PUBLIC_DIR, urlPath === "/" ? "index.html" : urlPath);
 
   fs.readFile(filePath, (err, data) => {
     if (err) {
