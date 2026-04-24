@@ -26,10 +26,14 @@ const MIME = {
 const { readDB, writeDB } = require("./db");
 
 function parseBody(req) {
+  if (req.body) {
+    return Promise.resolve(typeof req.body === 'string' ? JSON.parse(req.body) : req.body);
+  }
   return new Promise((resolve) => {
     let body = "";
     req.on("data", chunk => body += chunk.toString());
     req.on("end", () => {
+      if (!body) return resolve({});
       try { resolve(JSON.parse(body)); } catch { resolve({}); }
     });
   });
