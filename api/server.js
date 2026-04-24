@@ -2,25 +2,25 @@
 // index.js — PortalBi: MCP Server (stdio) + HTTP Server (static files)
 
 const readline = require("readline");
-const http     = require("http");
-const fs       = require("fs");
-const path     = require("path");
+const http = require("http");
+const fs = require("fs");
+const path = require("path");
 
 // ── HTTP Static Server ────────────────────────────────────────
 
 const PUBLIC_DIR = path.join(__dirname, "..");
-const PORT       = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3000;
 
 const MIME = {
   ".html": "text/html; charset=utf-8",
-  ".css":  "text/css; charset=utf-8",
-  ".js":   "application/javascript; charset=utf-8",
-  ".svg":  "image/svg+xml",
-  ".png":  "image/png",
-  ".jpg":  "image/jpeg",
-  ".ico":  "image/x-icon",
+  ".css": "text/css; charset=utf-8",
+  ".js": "application/javascript; charset=utf-8",
+  ".svg": "image/svg+xml",
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".ico": "image/x-icon",
   ".json": "application/json",
-  ".woff2":"font/woff2",
+  ".woff2": "font/woff2",
 };
 
 const { readDB, writeDB } = require("../db");
@@ -45,7 +45,7 @@ function sendJSON(res, status, data) {
 }
 
 const requestHandler = async (req, res) => {
-  const urlPath  = req.url.split("?")[0];
+  const urlPath = req.url.split("?")[0];
 
   // ── API Routes ────────────────────────────────────────────────
   if (urlPath.startsWith("/api/")) {
@@ -55,11 +55,11 @@ const requestHandler = async (req, res) => {
       const body = await parseBody(req);
       const user = db.users.find(u => u.email === body.email && u.password === body.password);
 
-        // Obter dashboards permitidos
-        const userDashIds = db.permissions[user?.id] || [];
-        const allowedDashboards = user?.isAdmin 
-          ? db.dashboards 
-          : db.dashboards.filter(d => userDashIds.includes(d.id));
+      // Obter dashboards permitidos
+      const userDashIds = db.permissions[user?.id] || [];
+      const allowedDashboards = user?.isAdmin
+        ? db.dashboards
+        : db.dashboards.filter(d => userDashIds.includes(d.id));
       if (user) {
         res.writeHead(200);
         res.end(JSON.stringify({
@@ -69,8 +69,8 @@ const requestHandler = async (req, res) => {
         }));
       } else {
         res.writeHead(401);
-        res.end(JSON.stringify({ 
-          success: false, 
+        res.end(JSON.stringify({
+          success: false,
           message: `Credenciais inválidas. DEBUG: Recebeu Email='${body.email}', Senha='${body.password}'. Tipo do req.body='${typeof req.body}'. Body parseado: ${JSON.stringify(body)}`
         }));
       }
@@ -104,7 +104,7 @@ const requestHandler = async (req, res) => {
     if (req.method === "GET" && urlPath === "/api/dashboards") {
       return sendJSON(res, 200, db.dashboards);
     }
-    
+
     if (req.method === "POST" && urlPath === "/api/dashboards") {
       const body = await parseBody(req);
       const newDash = { id: Date.now(), ...body };
@@ -156,12 +156,12 @@ const requestHandler = async (req, res) => {
       res.end("404 Not Found");
       return;
     }
-    const ext  = path.extname(filePath);
+    const ext = path.extname(filePath);
     const mime = MIME[ext] || "application/octet-stream";
     res.writeHead(200, { "Content-Type": mime });
     res.end(data);
   });
-});
+};
 
 if (require.main === module) {
   const httpServer = http.createServer(requestHandler);
@@ -188,10 +188,10 @@ const handlers = {
       capabilities: { tools: {}, resources: {} },
     });
   },
-  "notifications/initialized"() {},
-  "tools/list"(id)     { sendResult(id, { tools: [] }); },
+  "notifications/initialized"() { },
+  "tools/list"(id) { sendResult(id, { tools: [] }); },
   "resources/list"(id) { sendResult(id, { resources: [] }); },
-  ping(id)             { sendResult(id, {}); },
+  ping(id) { sendResult(id, {}); },
 };
 
 const rl = readline.createInterface({ input: process.stdin, crlfDelay: Infinity });
