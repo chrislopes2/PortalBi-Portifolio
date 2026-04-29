@@ -126,14 +126,14 @@ function renderDashList() {
   `).join("");
 
   dashList.querySelectorAll(".dash-item").forEach((item) => {
-    const open = () => loadDash(parseInt(item.dataset.id, 10));
+    const open = () => loadDash(item.dataset.id);
     item.addEventListener("click", open);
     item.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") open(); });
   });
 }
 
 function loadDash(id) {
-  const report = state.reports.find((r) => r.id === id);
+  const report = state.reports.find((r) => String(r.id) === String(id));
   if (!report) return;
   state.activeDash = id;
   dashActiveTitle.textContent = report.title;
@@ -190,11 +190,11 @@ function renderAdminTable() {
 
   // Edit
   adminTbody.querySelectorAll("[data-edit]").forEach((btn) => {
-    btn.addEventListener("click", () => openEditModal(parseInt(btn.dataset.edit, 10)));
+    btn.addEventListener("click", () => openEditModal(btn.dataset.edit));
   });
   // Delete
   adminTbody.querySelectorAll("[data-del]").forEach((btn) => {
-    btn.addEventListener("click", () => openConfirmDelete(parseInt(btn.dataset.del, 10)));
+    btn.addEventListener("click", () => openConfirmDelete(btn.dataset.del));
   });
 }
 
@@ -243,7 +243,7 @@ function showAddMsg(text, type) {
 
 // ── Delete ────────────────────────────────────────────────────
 function openConfirmDelete(id) {
-  const report = state.reports.find((r) => r.id === id);
+  const report = state.reports.find((r) => String(r.id) === String(id));
   if (!report) return;
   state.pendingDeleteId = id;
   document.getElementById("confirm-msg").textContent = `"${report.title}" será removido permanentemente.`;
@@ -257,7 +257,7 @@ document.getElementById("confirm-ok").addEventListener("click", async () => {
     await fetch(`/api/dashboards/${state.pendingDeleteId}`, { method: "DELETE" });
     await fetchDashboards();
     
-    if (state.activeDash === state.pendingDeleteId) {
+    if (String(state.activeDash) === String(state.pendingDeleteId)) {
       state.activeDash = null;
       dashActiveTitle.textContent = "—";
       dashIframe.classList.add("hidden");
@@ -282,7 +282,7 @@ document.getElementById("confirm-backdrop").addEventListener("click", () => {
 
 // ── Edit ──────────────────────────────────────────────────────
 function openEditModal(id) {
-  const report = state.reports.find((r) => r.id === id);
+  const report = state.reports.find((r) => String(r.id) === String(id));
   if (!report) return;
   document.getElementById("edit-id").value  = id;
   document.getElementById("e-title").value  = report.title;
@@ -294,19 +294,19 @@ function openEditModal(id) {
 
 editForm.addEventListener("submit", (e) => {
   e.preventDefault();
-  const id    = parseInt(document.getElementById("edit-id").value, 10);
+  const id    = document.getElementById("edit-id").value;
   const title = document.getElementById("e-title").value.trim();
   const cat   = document.getElementById("e-cat").value;
   const url   = document.getElementById("e-url").value.trim();
   const desc  = document.getElementById("e-desc").value.trim();
 
-  const idx = state.reports.findIndex((r) => r.id === id);
+  const idx = state.reports.findIndex((r) => String(r.id) === String(id));
   if (idx === -1) return;
 
   state.reports[idx] = { ...state.reports[idx], title, cat, embedUrl: url, desc };
 
   // If this was the active dashboard, update the embed
-  if (state.activeDash === id) loadDash(id);
+  if (String(state.activeDash) === String(id)) loadDash(id);
 
   renderDashList();
   renderAdminTable();
@@ -458,11 +458,11 @@ function renderUserTable() {
   `).join("");
 
   adminUserTbody.querySelectorAll("[data-perms]").forEach(btn => {
-    btn.addEventListener("click", () => openPermsModal(parseInt(btn.dataset.perms, 10)));
+    btn.addEventListener("click", () => openPermsModal(btn.dataset.perms));
   });
   adminUserTbody.querySelectorAll("[data-deluser]").forEach(btn => {
     btn.addEventListener("click", async () => {
-      const id = parseInt(btn.dataset.deluser, 10);
+      const id = btn.dataset.deluser;
       if (confirm("Tem certeza que deseja excluir este usuário?")) {
         await fetch(`/api/users/${id}`, { method: "DELETE" });
         await fetchUsers();
@@ -501,7 +501,7 @@ if (btnAddUser) {
 
 async function openPermsModal(userId) {
   state.activeUserIdForPerms = userId;
-  const user = state.users.find(u => u.id === userId);
+  const user = state.users.find(u => String(u.id) === String(userId));
   document.getElementById("perms-sub").textContent = `Defina acessos para ${user.name}`;
   
   // Buscar todas as permissoes deste usuario
@@ -512,7 +512,7 @@ async function openPermsModal(userId) {
   // O admin tem state.reports completo
   permsList.innerHTML = state.reports.map(r => `
     <label class="perm-item">
-      <input type="checkbox" value="${r.id}" ${userDashIds.includes(r.id) ? 'checked' : ''} />
+      <input type="checkbox" value="${r.id}" ${userDashIds.map(String).includes(String(r.id)) ? 'checked' : ''} />
       <div class="perm-item__info">
         <span class="perm-item__title">${r.title}</span>
         <span class="perm-item__cat">${r.cat}</span>
@@ -528,7 +528,7 @@ if (btnSavePerms) {
   document.getElementById("perms-backdrop").addEventListener("click", () => closeModal(modalPerms));
 
   btnSavePerms.addEventListener("click", async () => {
-    const checked = Array.from(permsList.querySelectorAll("input:checked")).map(i => parseInt(i.value, 10));
+    const checked = Array.from(permsList.querySelectorAll("input:checked")).map(i => i.value);
     
     const res = await fetch("/api/permissions", {
       method: "POST", headers: { "Content-Type": "application/json" },
