@@ -175,44 +175,60 @@ const requestHandler = async (req, res) => {
         .from('dashboards')
         .insert([{ 
           title: body.title, 
-          category: body.cat, 
-          description: body.desc, 
-          date_label: body.date, 
-          colors: body.color, 
-          embed_url: body.embedUrl 
+          category: body.category, 
+          description: body.description, 
+          date_label: body.date_label, 
+          colors: body.colors, 
+          embed_url: body.embed_url 
         }])
         .select()
         .single();
 
       if (error) return sendJSON(res, 400, { error: error.message });
-      return sendJSON(res, 201, { ...newDash, cat: newDash.category, desc: newDash.description, date: newDash.date_label, color: newDash.colors });
+      return sendJSON(res, 201, { 
+        ...newDash, 
+        cat: newDash.category, 
+        desc: newDash.description, 
+        date: newDash.date_label, 
+        color: newDash.colors,
+        embedUrl: newDash.embed_url
+      });
     }
 
     // Deletar Dashboard
     if (req.method === "DELETE" && urlPath.startsWith("/api/dashboards/")) {
       const id = urlPath.split("/").pop();
+      // Limpa permissões antes para evitar erro de FK
+      await supabase.from('permissions').delete().eq('dashboard_id', id);
       const { error } = await supabase.from('dashboards').delete().eq('id', id);
       if (error) return sendJSON(res, 400, { error: error.message });
       return sendJSON(res, 200, { success: true });
     }
 
-    // Listar Permissões de um Usuário
-    if (req.method === "GET" && urlPath.startsWith("/api/permissions/")) {
-      const userId = urlPath.split("/").pop();
-      const { data: perms } = await supabase.from('permissions').select('dashboard_id').eq('user_id', userId);
-      return sendJSON(res, 200, (perms || []).map(p => p.dashboard_id));
+    // Listar Permissões de um Dashboard
+    if (req.method === "GET" && urlPath === "/api/permissions") {
+      const { searchParams } = new URL(req.url, `http://${req.headers.host}`);
+      const dashId = searchParams.get('dashId');
+      const { data, error } = await supabase.from('permissions').select('user_id').eq('dashboard_id', dashId);
+      if (error) return sendJSON(res, 500, { success: false, message: error.message });
+      return sendJSON(res, 200, (data || []).map(p => p.user_id));
     }
 
-    // Atualizar Permissões
+    // Salvar Permissões (Sobrescrever)
     if (req.method === "POST" && urlPath === "/api/permissions") {
       const body = await parseBody(req);
-      if (!body.userId) return sendJSON(res, 400, { error: "userId required" });
-      await supabase.from('permissions').delete().eq('user_id', body.userId);
-      if (body.dashboardIds && body.dashboardIds.length > 0) {
-        const rows = body.dashboardIds.map(dId => ({ user_id: body.userId, dashboard_id: dId }));
-        const { error } = await supabase.from('permissions').insert(rows);
-        if (error) return sendJSON(res, 400, { error: error.message });
+      const { dashId, userIds } = body;
+      
+      // Limpa antigas
+      await supabase.from('permissions').delete().eq('dashboard_id', dashId);
+      
+      // Insere novas
+      if (userIds && userIds.length > 0) {
+        const toInsert = userIds.map(uid => ({ user_id: uid, dashboard_id: dashId }));
+        const { error } = await supabase.from('permissions').insert(toInsert);
+        if (error) return sendJSON(res, 500, { success: false, message: error.message });
       }
+      
       return sendJSON(res, 200, { success: true });
     }
 

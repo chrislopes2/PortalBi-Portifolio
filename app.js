@@ -13,18 +13,35 @@ const state = {
 };
 
 async function fetchDashboards() {
+  if (!state.user?.id) return;
   try {
-    const res = await fetch("/api/dashboards");
-    state.reports = await res.json();
-  } catch (err) { console.error(err); }
+    const res = await fetch(`/api/dashboards?userId=${state.user.id}`);
+    if (res.ok) {
+      state.reports = await res.json();
+    }
+  } catch (err) { console.error("Erro fetchDashboards:", err); }
 }
 
 async function fetchUsers() {
   if (!state.user?.isAdmin) return;
   try {
     const res = await fetch("/api/users");
-    state.users = await res.json();
-  } catch (err) { console.error(err); }
+    if (res.ok) {
+      state.users = await res.json();
+    }
+  } catch (err) { console.error("Erro fetchUsers:", err); }
+}
+
+async function deleteDash(id) {
+  if (!confirm("Excluir este dashboard permanentemente?")) return;
+  try {
+    const res = await fetch(`/api/dashboards/${id}`, { method: "DELETE" });
+    if (res.ok) {
+      state.reports = state.reports.filter(r => String(r.id) !== String(id));
+      renderDashList();
+      renderAdminTable();
+    }
+  } catch (err) { console.error("Erro ao excluir dash:", err); }
 }
 
 // ── DOM Refs ──────────────────────────────────────────────────
@@ -220,7 +237,14 @@ addForm.addEventListener("submit", async (e) => {
   const colors = ["#F59E0B","#38BDF8","#34D399","#A78BFA","#EF4444","#F59E0B","#38BDF8"];
   const now = new Date().toLocaleDateString("pt-BR", { month: "short", year: "numeric" });
 
-  const payload = { title, cat, desc: desc || "Dashboard publicado pelo administrador.", date: now, color: colors, embedUrl: url };
+  const payload = { 
+    title, 
+    category: cat, 
+    description: desc || "Dashboard publicado pelo administrador.", 
+    date_label: now, 
+    colors: JSON.stringify(colors), 
+    embed_url: url 
+  };
   
   try {
     const res = await fetch("/api/dashboards", {
