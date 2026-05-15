@@ -530,7 +530,10 @@ if (btnAddUser) {
     const name = document.getElementById("u-name").value.trim();
     const email = document.getElementById("u-email").value.trim();
     const password = document.getElementById("u-password").value.trim();
-    const area = document.getElementById("u-area").value;
+    
+    // Pega todas as áreas marcadas
+    const selectedAreas = Array.from(document.querySelectorAll("#u-area-group input:checked")).map(i => i.value);
+    const area = selectedAreas.join(", ");
     
     if (!name || !email || !password) return alert("Preencha todos os campos.");
 

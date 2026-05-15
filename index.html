@@ -373,8 +373,14 @@
           <input id="u-password" type="text" placeholder="Senha inicial" />
         </div>
         <div class="form-group">
-          <label for="u-area">Áreas (separe por vírgula)</label>
-          <input id="u-area" type="text" placeholder="Ex: Financeiro, Comercial" />
+          <label>Áreas de Acesso</label>
+          <div class="area-checkboxes" id="u-area-group">
+            <label class="check-item"><input type="checkbox" value="Comercial"> Comercial</label>
+            <label class="check-item"><input type="checkbox" value="Financeiro"> Financeiro</label>
+            <label class="check-item"><input type="checkbox" value="Operacional"> Operacional</label>
+            <label class="check-item"><input type="checkbox" value="RH"> RH</label>
+            <label class="check-item"><input type="checkbox" value="Diretoria"> Diretoria</label>
+          </div>
         </div>
         <button type="submit" class="btn btn--primary btn--full">Salvar Usuário</button>
       </form>
