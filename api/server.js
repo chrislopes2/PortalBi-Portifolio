@@ -77,13 +77,19 @@ const requestHandler = async (req, res) => {
           const { data: userPerms } = await supabase.from('permissions').select('dashboard_id').eq('user_id', user.id);
           const dashIds = (userPerms || []).map(p => p.dashboard_id);
           
-          // Tratar múltiplas áreas (ex: "financeiro, comercial")
-          const userAreas = (user.area || "").split(',').map(a => a.trim()).filter(a => a);
+          // Tratar múltiplas áreas (case-insensitive e trimmed)
+          const userAreas = (user.area || "").split(',').map(a => a.trim().toLowerCase()).filter(a => a);
           
           let query = supabase.from('dashboards').select('*');
           
           let orConditions = [];
-          if (userAreas.length > 0) orConditions.push(`category.in.(${userAreas.join(',')})`);
+          if (userAreas.length > 0) {
+            // No Supabase, filtros or/in são sensíveis a maiúsculas, vamos garantir consistência
+            // Para simplificar, vamos usar eq para cada área se forem poucas, ou ilike
+            userAreas.forEach(area => {
+              orConditions.push(`category.ilike.${area}`);
+            });
+          }
           if (dashIds.length > 0) orConditions.push(`id.in.(${dashIds.join(',')})`);
           
           if (orConditions.length > 0) {
@@ -140,6 +146,14 @@ const requestHandler = async (req, res) => {
       return sendJSON(res, 201, { ...newUser, isAdmin: newUser.is_admin });
     }
 
+    // Listar Permissões de um Usuário
+    if (req.method === "GET" && urlPath.startsWith("/api/permissions/")) {
+      const userId = urlPath.split("/").pop();
+      const { data, error } = await supabase.from('permissions').select('dashboard_id').eq('user_id', userId);
+      if (error) return sendJSON(res, 400, { error: error.message });
+      return sendJSON(res, 200, data || []);
+    }
+
     // Deletar Usuário
     if (req.method === "DELETE" && urlPath.startsWith("/api/users/")) {
       const id = urlPath.split("/").pop();
@@ -163,12 +177,16 @@ const requestHandler = async (req, res) => {
         const { data: perms } = await supabase.from('permissions').select('dashboard_id').eq('user_id', userId);
         const dashIds = (perms || []).map(p => p.dashboard_id);
         
-        // Tratar múltiplas áreas
-        const userAreas = (user.area || "").split(',').map(a => a.trim()).filter(a => a);
+        // Tratar múltiplas áreas (case-insensitive e trimmed)
+        const userAreas = (user.area || "").split(',').map(a => a.trim().toLowerCase()).filter(a => a);
         
         let query = supabase.from('dashboards').select('*');
         let orConditions = [];
-        if (userAreas.length > 0) orConditions.push(`category.in.(${userAreas.join(',')})`);
+        if (userAreas.length > 0) {
+          userAreas.forEach(area => {
+            orConditions.push(`category.ilike.${area}`);
+          });
+        }
         if (dashIds.length > 0) orConditions.push(`id.in.(${dashIds.join(',')})`);
 
         if (orConditions.length > 0) {
