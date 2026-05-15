@@ -4,3 +4,7 @@ data/db.json
 *.log
 
 .vercel
+
+scratch/
+teste_export.csv
+*.xlsx
