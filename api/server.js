@@ -80,11 +80,20 @@ const requestHandler = async (req, res) => {
              dashboards = permittedDashboards || [];
           }
         }
-
+        
+        // Mapear campos para o padrão do frontend
+        const mappedDashboards = dashboards.map(d => ({
+          ...d,
+          cat: d.category,
+          desc: d.description,
+          date: d.date_label,
+          color: d.colors
+        }));
+        
         return sendJSON(res, 200, {
           success: true,
           user: { id: user.id, name: user.name, email: user.email, area: user.area, isAdmin: user.is_admin },
-          dashboards: dashboards
+          dashboards: mappedDashboards
         });
       }
       return sendJSON(res, 401, { success: false, message: "Credenciais inválidas" });

@@ -584,16 +584,19 @@ async function init() {
   updateAuthUI();
   
   if (state.isLoggedIn) {
+    console.log("[PortalBi] Restaurando sessão para:", state.user.email);
     try {
       const dashRes = await fetch("/api/dashboards");
       if (dashRes.ok) {
         state.reports = await dashRes.json();
+        console.log("[PortalBi] Dashboards restaurados:", state.reports.length);
         renderDashList();
         if (state.activeDash) {
+           console.log("[PortalBi] Carregando dash ativo:", state.activeDash);
            loadDash(state.activeDash);
         }
       }
-    } catch(err) { console.error("Erro na restauração:", err); }
+    } catch(err) { console.error("[PortalBi] Erro na restauração:", err); }
   }
   
   activateTab(state.activeTab);
