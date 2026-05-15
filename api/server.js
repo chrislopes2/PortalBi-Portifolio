@@ -154,6 +154,23 @@ const requestHandler = async (req, res) => {
       return sendJSON(res, 200, data || []);
     }
 
+    // Salvar/Atualizar Permissões
+    if (req.method === "POST" && urlPath === "/api/permissions") {
+      const { userId, dashboardIds } = await parseBody(req);
+      
+      // Limpa as antigas
+      await supabase.from('permissions').delete().eq('user_id', userId);
+      
+      // Insere as novas se houver
+      if (dashboardIds && dashboardIds.length > 0) {
+        const rows = dashboardIds.map(id => ({ user_id: userId, dashboard_id: id }));
+        const { error } = await supabase.from('permissions').insert(rows);
+        if (error) return sendJSON(res, 400, { error: error.message });
+      }
+      
+      return sendJSON(res, 200, { success: true });
+    }
+
     // Deletar Usuário
     if (req.method === "DELETE" && urlPath.startsWith("/api/users/")) {
       const id = urlPath.split("/").pop();
