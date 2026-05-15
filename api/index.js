@@ -56,11 +56,19 @@ module.exports = async (req, res) => {
 
       // Buscar dashboards permitidos (simplificado)
       const { data: dashboards } = await supabase.from('dashboards').select('*');
+      const mappedDashboards = (dashboards || []).map(d => ({
+        ...d,
+        cat: d.category,
+        desc: d.description,
+        date: d.date_label,
+        color: d.colors,
+        embedUrl: d.embed_url
+      }));
 
       return res.status(200).json({ 
         success: true, 
         user: { id: data.id, email: data.email, name: data.name, isAdmin: data.is_admin, area: data.area },
-        dashboards: dashboards || []
+        dashboards: mappedDashboards
       });
     }
 

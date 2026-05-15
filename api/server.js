@@ -87,7 +87,8 @@ const requestHandler = async (req, res) => {
           cat: d.category,
           desc: d.description,
           date: d.date_label,
-          color: d.colors
+          color: d.colors,
+          embedUrl: d.embed_url
         }));
         
         return sendJSON(res, 200, {
@@ -136,7 +137,14 @@ const requestHandler = async (req, res) => {
     // Listar Dashboards
     if (req.method === "GET" && urlPath === "/api/dashboards") {
       const { data: dashboards } = await supabase.from('dashboards').select('*').order('created_at', { ascending: false });
-      const mapped = (dashboards || []).map(d => ({ ...d, cat: d.category, desc: d.description, date: d.date_label, color: d.colors }));
+      const mapped = (dashboards || []).map(d => ({ 
+        ...d, 
+        cat: d.category, 
+        desc: d.description, 
+        date: d.date_label, 
+        color: d.colors,
+        embedUrl: d.embed_url
+      }));
       return sendJSON(res, 200, mapped);
     }
     
