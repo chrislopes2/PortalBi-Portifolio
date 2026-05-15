@@ -376,6 +376,10 @@ loginForm.addEventListener("submit", async (e) => {
     
     if (res.ok) {
       const data = await res.json();
+      state.isLoggedIn = true;
+      state.user = data.user;
+      state.reports = data.dashboards;
+      
       closeModal(modalLogin);
       
       // Persistência
