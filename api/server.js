@@ -73,7 +73,10 @@ const requestHandler = async (req, res) => {
           const { data: allDashboards } = await supabase.from('dashboards').select('*').order('created_at', { ascending: false });
           dashboards = allDashboards || [];
         } else {
-          const { data: userPerms } = await supabase.from('permissions').select('dashboard_id').eq('user_id', user.id);
+          // Busca permissões garantindo o uso do ID do usuário recém-validado
+          const { data: userPerms, error: permError } = await supabase.from('permissions').select('dashboard_id').eq('user_id', user.id);
+          if (permError) console.error("Erro permissões login:", permError);
+          
           const dashIds = (userPerms || []).map(p => p.dashboard_id);
           if (dashIds.length > 0) {
              const { data: permittedDashboards } = await supabase.from('dashboards').select('*').in('id', dashIds);

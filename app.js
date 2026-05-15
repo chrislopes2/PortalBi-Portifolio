@@ -387,8 +387,13 @@ loginForm.addEventListener("submit", async (e) => {
       localStorage.setItem("portal_user", JSON.stringify(data.user));
       
       updateAuthUI();
-      activateTab("dashboards"); // Redireciona para dashboards após login
-      refreshDashView();
+      
+      // Pequeno delay para garantir que o DOM e os estados estejam sincronizados
+      setTimeout(() => {
+        activateTab("dashboards");
+        refreshDashView();
+        console.log("[PortalBi] Login OK! Dashboards carregados:", state.reports.length);
+      }, 100);
       if (state.activeTab === "admin") {
         renderAdminTable();
         if (state.user.isAdmin) {
