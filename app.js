@@ -2,10 +2,10 @@
 
 // ── State ─────────────────────────────────────────────────────
 const state = {
-  isLoggedIn: false,
-  user: null,
-  activeTab: "home",
-  activeDash: null,
+  isLoggedIn: localStorage.getItem("portal_isLoggedIn") === "true",
+  user: JSON.parse(localStorage.getItem("portal_user")),
+  activeTab: localStorage.getItem("portal_activeTab") || "home",
+  activeDash: localStorage.getItem("portal_activeDash"),
   pendingDeleteId: null,
   reports: [],
   users: [],
@@ -75,6 +75,7 @@ function activateTab(name) {
     panel.hidden = !isActive;
     panel.classList.toggle("active", isActive);
   });
+  localStorage.setItem("portal_activeTab", name);
   if (name === "dashboards") refreshDashView();
   if (name === "admin") {
     fetchDashboards().then(renderAdminTable);
@@ -136,6 +137,7 @@ function loadDash(id) {
   const report = state.reports.find((r) => String(r.id) === String(id));
   if (!report) return;
   state.activeDash = id;
+  localStorage.setItem("portal_activeDash", id);
   dashActiveTitle.textContent = report.title;
   dashOpenLink.href = report.embedUrl || "#";
 
@@ -374,11 +376,12 @@ loginForm.addEventListener("submit", async (e) => {
     
     if (res.ok) {
       const data = await res.json();
-      state.isLoggedIn = true;
-      state.user = data.user;
-      state.reports = data.dashboards;
-      
       closeModal(modalLogin);
+      
+      // Persistência
+      localStorage.setItem("portal_isLoggedIn", "true");
+      localStorage.setItem("portal_user", JSON.stringify(data.user));
+      
       updateAuthUI();
       if (state.activeTab === "dashboards") refreshDashView();
       if (state.activeTab === "admin") {
@@ -405,6 +408,11 @@ btnLogout.addEventListener("click", () => {
   state.isLoggedIn = false;
   state.user = null;
   state.activeDash = null;
+  
+  localStorage.removeItem("portal_isLoggedIn");
+  localStorage.removeItem("portal_user");
+  localStorage.removeItem("portal_activeDash");
+  
   updateAuthUI();
   activateTab("home");
 });
@@ -415,7 +423,13 @@ function updateAuthUI() {
     btnLogin.classList.add("hidden");
     btnLogout.classList.remove("hidden");
     btnLogout.textContent = `👤 ${name}  ·  Sair`;
-    tabAdminBtn.classList.remove("hidden");
+    
+    if (state.user.isAdmin) {
+      tabAdminBtn.classList.remove("hidden");
+    } else {
+      tabAdminBtn.classList.add("hidden");
+    }
+    
     tabLockIcon.textContent = "✓";
     tabLockIcon.style.color = "var(--green)";
   } else {
@@ -561,4 +575,24 @@ function setupCounters() {
 }
 
 // ── Init ──────────────────────────────────────────────────────
-setupCounters();
+async function init() {
+  setupCounters();
+  updateAuthUI();
+  
+  if (state.isLoggedIn) {
+    try {
+      const dashRes = await fetch("/api/dashboards");
+      if (dashRes.ok) {
+        state.reports = await dashRes.json();
+        renderDashList();
+        if (state.activeDash) {
+           loadDash(state.activeDash);
+        }
+      }
+    } catch(err) { console.error("Erro na restauração:", err); }
+  }
+  
+  activateTab(state.activeTab);
+}
+
+init();
