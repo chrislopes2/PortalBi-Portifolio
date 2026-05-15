@@ -73,14 +73,29 @@ const requestHandler = async (req, res) => {
           const { data: allDashboards } = await supabase.from('dashboards').select('*').order('created_at', { ascending: false });
           dashboards = allDashboards || [];
         } else {
-          // Busca permissões garantindo o uso do ID do usuário recém-validado
-          const { data: userPerms, error: permError } = await supabase.from('permissions').select('dashboard_id').eq('user_id', user.id);
-          if (permError) console.error("Erro permissões login:", permError);
-          
+          // Busca dashboards por Área E por Permissões Individuais
+          const { data: userPerms } = await supabase.from('permissions').select('dashboard_id').eq('user_id', user.id);
           const dashIds = (userPerms || []).map(p => p.dashboard_id);
-          if (dashIds.length > 0) {
-             const { data: permittedDashboards } = await supabase.from('dashboards').select('*').in('id', dashIds);
-             dashboards = permittedDashboards || [];
+          
+          let query = supabase.from('dashboards').select('*');
+          
+          if (user.area) {
+            // Se tem área, busca os da área OU os permitidos individualmente
+            if (dashIds.length > 0) {
+              query = query.or(`category.eq.${user.area},id.in.(${dashIds.join(',')})`);
+            } else {
+              query = query.eq('category', user.area);
+            }
+          } else if (dashIds.length > 0) {
+            query = query.in('id', dashIds);
+          } else {
+            dashboards = [];
+            query = null;
+          }
+          
+          if (query) {
+            const { data: filtered } = await query;
+            dashboards = filtered || [];
           }
         }
         
@@ -148,11 +163,25 @@ const requestHandler = async (req, res) => {
       if (user?.is_admin) {
         const { data: all } = await supabase.from('dashboards').select('*').order('created_at', { ascending: false });
         dashboards = all || [];
-      } else if (userId) {
+      } else if (userId && user) {
         const { data: perms } = await supabase.from('permissions').select('dashboard_id').eq('user_id', userId);
         const dashIds = (perms || []).map(p => p.dashboard_id);
-        if (dashIds.length > 0) {
-          const { data: filtered } = await supabase.from('dashboards').select('*').in('id', dashIds);
+        
+        let query = supabase.from('dashboards').select('*');
+        if (user.area) {
+          if (dashIds.length > 0) {
+            query = query.or(`category.eq.${user.area},id.in.(${dashIds.join(',')})`);
+          } else {
+            query = query.eq('category', user.area);
+          }
+        } else if (dashIds.length > 0) {
+          query = query.in('id', dashIds);
+        } else {
+          query = null;
+        }
+
+        if (query) {
+          const { data: filtered } = await query;
           dashboards = filtered || [];
         }
       }
