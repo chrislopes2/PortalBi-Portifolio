@@ -552,23 +552,30 @@ async function openPermsModal(userId) {
   const user = state.users.find(u => String(u.id) === String(userId));
   document.getElementById("perms-sub").textContent = `Defina acessos para ${user.name}`;
   
-  // Buscar todas as permissoes deste usuario
-  const res = await fetch(`/api/permissions/${userId}`);
-  const userDashIds = await res.json();
-  
-  // Precisamos listar todos os dashboards do banco
-  // O admin tem state.reports completo
-  permsList.innerHTML = state.reports.map(r => `
-    <label class="perm-item">
-      <input type="checkbox" value="${r.id}" ${userDashIds.map(String).includes(String(r.id)) ? 'checked' : ''} />
-      <div class="perm-item__info">
-        <span class="perm-item__title">${r.title}</span>
-        <span class="perm-item__cat">${r.cat}</span>
-      </div>
-    </label>
-  `).join("");
-  
+  permsList.innerHTML = "<p>Carregando...</p>";
   openModal(modalPerms);
+
+  try {
+    // Buscar todas as permissoes deste usuario
+    const res = await fetch(`/api/permissions/${userId}`);
+    const data = await res.json();
+    // O banco retorna [{dashboard_id: ...}, ...], vamos extrair apenas os IDs
+    const userDashIds = data.map(p => String(p.dashboard_id));
+    
+    // Listar todos os dashboards do banco (admin tem acesso a todos em state.reports)
+    permsList.innerHTML = state.reports.map(r => `
+      <label class="perm-item">
+        <input type="checkbox" value="${r.id}" ${userDashIds.includes(String(r.id)) ? 'checked' : ''} />
+        <div class="perm-item__info">
+          <span class="perm-item__title">${r.title}</span>
+          <span class="perm-item__cat">${r.category || r.cat}</span>
+        </div>
+      </label>
+    `).join("");
+  } catch (err) {
+    permsList.innerHTML = "<p>Erro ao carregar permissões.</p>";
+    console.error(err);
+  }
 }
 
 if (btnSavePerms) {

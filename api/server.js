@@ -154,7 +154,7 @@ const requestHandler = async (req, res) => {
       const userId = searchParams.get('userId');
       
       let dashboards = [];
-      const { data: user } = await supabase.from('users').select('is_admin').eq('id', userId).maybeSingle();
+      const { data: user } = await supabase.from('users').select('is_admin, area').eq('id', userId).maybeSingle();
 
       if (user?.is_admin) {
         const { data: all } = await supabase.from('dashboards').select('*').order('created_at', { ascending: false });
