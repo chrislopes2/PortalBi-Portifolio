@@ -387,7 +387,8 @@ loginForm.addEventListener("submit", async (e) => {
       localStorage.setItem("portal_user", JSON.stringify(data.user));
       
       updateAuthUI();
-      if (state.activeTab === "dashboards") refreshDashView();
+      activateTab("dashboards"); // Redireciona para dashboards após login
+      refreshDashView();
       if (state.activeTab === "admin") {
         renderAdminTable();
         if (state.user.isAdmin) {
@@ -586,7 +587,7 @@ async function init() {
   if (state.isLoggedIn) {
     console.log("[PortalBi] Restaurando sessão para:", state.user.email);
     try {
-      const dashRes = await fetch("/api/dashboards");
+      const dashRes = await fetch(`/api/dashboards?userId=${state.user.id}`);
       if (dashRes.ok) {
         state.reports = await dashRes.json();
         console.log("[PortalBi] Dashboards restaurados:", state.reports.length);

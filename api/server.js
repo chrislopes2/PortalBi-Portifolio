@@ -134,9 +134,26 @@ const requestHandler = async (req, res) => {
       return sendJSON(res, 200, { success: true });
     }
 
-    // Listar Dashboards
+    // Listar Dashboards (com filtro de permissão)
     if (req.method === "GET" && urlPath === "/api/dashboards") {
-      const { data: dashboards } = await supabase.from('dashboards').select('*').order('created_at', { ascending: false });
+      const { searchParams } = new URL(req.url, `http://${req.headers.host}`);
+      const userId = searchParams.get('userId');
+      
+      let dashboards = [];
+      const { data: user } = await supabase.from('users').select('is_admin').eq('id', userId).maybeSingle();
+
+      if (user?.is_admin) {
+        const { data: all } = await supabase.from('dashboards').select('*').order('created_at', { ascending: false });
+        dashboards = all || [];
+      } else if (userId) {
+        const { data: perms } = await supabase.from('permissions').select('dashboard_id').eq('user_id', userId);
+        const dashIds = (perms || []).map(p => p.dashboard_id);
+        if (dashIds.length > 0) {
+          const { data: filtered } = await supabase.from('dashboards').select('*').in('id', dashIds);
+          dashboards = filtered || [];
+        }
+      }
+
       const mapped = (dashboards || []).map(d => ({ 
         ...d, 
         cat: d.category, 
