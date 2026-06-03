@@ -398,10 +398,25 @@
     <div class="modal__box modal__box--wide">
       <button class="modal__close" id="perms-close" aria-label="Fechar">&#x2715;</button>
       <h2 id="perms-title" class="modal__title">Permissões de Acesso</h2>
-      <p class="modal__sub" id="perms-sub">Defina quais dashboards o usuário pode ver.</p>
+      <p class="modal__sub" id="perms-sub">Defina acessos do usuário.</p>
       
-      <div id="perms-list" class="perms-list">
-        <!-- Checkboxes injectados via JS -->
+      <div class="form-group" style="margin-bottom: 1.5rem;">
+        <label style="color: #cbd5e1; margin-bottom: 0.5rem; display: block;">Acesso por Áreas (Categorias inteiras)</label>
+        <div class="area-checkboxes" id="perms-area-group">
+          <label class="check-item"><input type="checkbox" value="Comercial"> Comercial</label>
+          <label class="check-item"><input type="checkbox" value="Financeiro"> Financeiro</label>
+          <label class="check-item"><input type="checkbox" value="Operacional"> Operacional</label>
+          <label class="check-item"><input type="checkbox" value="RH"> RH</label>
+          <label class="check-item"><input type="checkbox" value="Logistica"> Logística</label>
+          <label class="check-item"><input type="checkbox" value="Diretoria"> Diretoria</label>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label style="color: #cbd5e1; margin-bottom: 0.5rem; display: block;">Acesso por Dashboards Individuais</label>
+        <div id="perms-list" class="perms-list">
+          <!-- Checkboxes injectados via JS -->
+        </div>
       </div>
       
       <button id="btn-save-perms" class="btn btn--primary btn--full" style="margin-top: 1.5rem;">Salvar Permissões</button>

@@ -555,6 +555,12 @@ async function openPermsModal(userId) {
   const user = state.users.find(u => String(u.id) === String(userId));
   document.getElementById("perms-sub").textContent = `Defina acessos para ${user.name}`;
   
+  // Set area checkboxes
+  const userAreas = (user.area || "").split(',').map(a => a.trim().toLowerCase());
+  document.querySelectorAll("#perms-area-group input").forEach(cb => {
+    cb.checked = userAreas.includes(cb.value.toLowerCase());
+  });
+  
   permsList.innerHTML = "<p>Carregando...</p>";
   openModal(modalPerms);
 
@@ -587,13 +593,21 @@ if (btnSavePerms) {
 
   btnSavePerms.addEventListener("click", async () => {
     const checked = Array.from(permsList.querySelectorAll("input:checked")).map(i => i.value);
+    const checkedAreas = Array.from(document.querySelectorAll("#perms-area-group input:checked")).map(i => i.value);
     
     const res = await fetch("/api/permissions", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId: state.activeUserIdForPerms, dashboardIds: checked })
+      body: JSON.stringify({ userId: state.activeUserIdForPerms, dashboardIds: checked, areas: checkedAreas })
     });
     
     if (res.ok) {
+      // Update state locally
+      const userIdx = state.users.findIndex(u => String(u.id) === String(state.activeUserIdForPerms));
+      if (userIdx > -1) {
+          state.users[userIdx].area = checkedAreas.join(', ');
+          renderUsers();
+      }
+
       closeModal(modalPerms);
       alert("Permissões salvas!");
     }

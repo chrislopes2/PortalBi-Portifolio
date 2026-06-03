@@ -156,7 +156,7 @@ const requestHandler = async (req, res) => {
 
     // Salvar/Atualizar Permissões
     if (req.method === "POST" && urlPath === "/api/permissions") {
-      const { userId, dashboardIds } = await parseBody(req);
+      const { userId, dashboardIds, areas } = await parseBody(req);
       
       // Limpa as antigas
       await supabase.from('permissions').delete().eq('user_id', userId);
@@ -166,6 +166,11 @@ const requestHandler = async (req, res) => {
         const rows = dashboardIds.map(id => ({ user_id: userId, dashboard_id: id }));
         const { error } = await supabase.from('permissions').insert(rows);
         if (error) return sendJSON(res, 400, { error: error.message });
+      }
+      
+      // Atualiza áreas de acesso gerais no cadastro do usuário
+      if (areas !== undefined) {
+        await supabase.from('users').update({ area: areas.join(', ') }).eq('id', userId);
       }
       
       return sendJSON(res, 200, { success: true });
