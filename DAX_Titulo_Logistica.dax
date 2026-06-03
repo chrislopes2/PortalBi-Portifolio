@@ -1,0 +1,86 @@
+HTML_Titulo_Logistica = 
+VAR _CSS = "
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800;900&display=swap');
+    
+    body { margin: 0; overflow: hidden; font-family: 'Outfit', sans-serif; }
+    
+    .header-card {
+        background: linear-gradient(135deg, rgba(16, 24, 40, 0.7) 0%, rgba(10, 15, 25, 0.9) 100%);
+        backdrop-filter: blur(16px);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-left: 4px solid #f59e0b; /* Accent Line */
+        border-radius: 16px;
+        padding: 20px 30px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        height: 100%;
+    }
+    
+    .title-group { display: flex; flex-direction: column; gap: 4px; }
+    
+    .suptitle {
+        color: #f59e0b;
+        font-size: 0.75rem;
+        font-weight: 800;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+    }
+    
+    .maintitle {
+        color: #ffffff;
+        font-size: 1.8rem;
+        font-weight: 900;
+        letter-spacing: -0.5px;
+        margin: 0;
+        background: linear-gradient(90deg, #ffffff, #94a3b8);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    
+    .live-badge {
+        display: flex; align-items: center; gap: 8px;
+        background: rgba(34, 197, 94, 0.1);
+        border: 1px solid rgba(34, 197, 94, 0.3);
+        padding: 6px 12px;
+        border-radius: 99px;
+    }
+    
+    .live-dot {
+        width: 8px; height: 8px;
+        background: #22c55e;
+        border-radius: 50%;
+        box-shadow: 0 0 10px #22c55e;
+        animation: pulse 1.5s infinite alternate;
+    }
+    
+    .live-text {
+        color: #22c55e;
+        font-size: 0.75rem;
+        font-weight: 800;
+        letter-spacing: 1px;
+    }
+    
+    @keyframes pulse {
+        0% { transform: scale(0.9); opacity: 0.7; }
+        100% { transform: scale(1.2); opacity: 1; box-shadow: 0 0 15px #22c55e; }
+    }
+</style>
+"
+
+VAR _HTML = "
+<div class='header-card'>
+    <div class='title-group'>
+        <span class='suptitle'>Inteligência Logística</span>
+        <h1 class='maintitle'>FREIGHT COMMAND CENTER</h1>
+    </div>
+    <div class='live-badge'>
+        <div class='live-dot'></div>
+        <span class='live-text'>LIVE ROUTING</span>
+    </div>
+</div>
+"
+
+RETURN _CSS & _HTML

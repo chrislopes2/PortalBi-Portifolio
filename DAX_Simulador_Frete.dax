@@ -1,0 +1,224 @@
+HTML_App_Frete_Dinamico = 
+// 1. Agrupar os dados reais do banco
+VAR _TabelaRotas = 
+    ADDCOLUMNS(
+        SUMMARIZE(
+            logistics_freights,
+            logistics_freights[origin_city],
+            logistics_freights[destination_city]
+        ),
+        "KmMedio", CALCULATE(AVERAGE(logistics_freights[distance_km]))
+    )
+
+// 2. Criar a Coluna Calculada Virtual do Custo Histórico (Assumindo R$ 5,00/litro e 3.0 km/l) e Filtrar Erros
+VAR _RotasComCustos = 
+    ADDCOLUMNS(
+        FILTER(_TabelaRotas, NOT(ISBLANK(logistics_freights[origin_city])) && NOT(ISBLANK(logistics_freights[destination_city]))),
+        "CustoHistorico", DIVIDE([KmMedio], 3.0, 0) * 5.0
+    )
+
+// 3. Montar a Array JSON para o Javascript ler
+VAR _JSON_Rotas = 
+    "[" & 
+    CONCATENATEX(
+        _RotasComCustos,
+        "{ ""origem"": """ & logistics_freights[origin_city] & """, ""destino"": """ & logistics_freights[destination_city] & """, ""km"": """ & ROUND([KmMedio], 0) & """, ""custoAntigo"": """ & ROUND([CustoHistorico], 2) & """ }",
+        ","
+    ) & 
+    "]"
+
+// 4. Estruturar o HTML (Inputs + Tabela Vazia)
+VAR _HTML = "
+<div class='app-container'>
+    <div class='header'>
+        <h2>Simulador de Rotas & Custos (Live)</h2>
+    </div>
+    
+    <div class='controls'>
+        <div class='input-group'>
+            <label>Origem (Cidade)</label>
+            <input type='text' id='inpOrigem' placeholder='Ex: São Paulo' />
+        </div>
+        <div class='input-group'>
+            <label>Destino (Cidade)</label>
+            <input type='text' id='inpDestino' placeholder='Ex: Curitiba' />
+        </div>
+        <div class='input-group highlight'>
+            <label>Preço Diesel (R$)</label>
+            <input type='number' id='inpDiesel' value='6.10' step='0.1' />
+        </div>
+    </div>
+
+    <div class='table-wrapper'>
+        <table id='tblRotas'>
+            <thead>
+                <tr>
+                    <th>Origem</th>
+                    <th>Destino</th>
+                    <th>Distância</th>
+                    <th>Custo Histórico</th>
+                    <th>Custo Projetado (Live)</th>
+                </tr>
+            </thead>
+            <tbody id='tblBody'>
+                <!-- JS preenche aqui -->
+            </tbody>
+        </table>
+    </div>
+</div>
+"
+
+// 5. CSS
+VAR _CSS = "
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;900&display=swap');
+    
+    * { box-sizing: border-box; font-family: 'Outfit', sans-serif; }
+    body { margin: 0; padding: 0; background: transparent; overflow: hidden; color: #f8fafc; }
+    
+    .app-container {
+        width: 100vw; height: 100vh;
+        background: linear-gradient(135deg, rgba(15, 23, 42, 0.85) 0%, rgba(5, 8, 15, 0.95) 100%);
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 20px;
+        padding: 28px;
+        display: flex; flex-direction: column; gap: 24px;
+        box-shadow: 0 24px 50px rgba(0,0,0,0.6);
+    }
+    
+    .header h2 { margin: 0; font-size: 1.1rem; color: #94a3b8; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; display: flex; align-items: center; gap: 10px; }
+    .header h2::before { content: ''; width: 8px; height: 8px; background: #38bdf8; border-radius: 50%; box-shadow: 0 0 10px #38bdf8; }
+    
+    .controls { display: flex; gap: 20px; background: rgba(0, 0, 0, 0.3); padding: 20px; border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.03); box-shadow: inset 0 2px 10px rgba(0,0,0,0.2); }
+    .input-group { display: flex; flex-direction: column; gap: 8px; flex: 1; }
+    .input-group label { font-size: 0.7rem; text-transform: uppercase; color: #cbd5e1; font-weight: 800; letter-spacing: 1px; }
+    .input-group input { background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.08); color: #ffffff; padding: 12px 16px; border-radius: 10px; font-size: 0.95rem; font-weight: 600; outline: none; transition: all 0.3s; }
+    .input-group input:focus { border-color: #38bdf8; background: rgba(56, 189, 248, 0.05); box-shadow: 0 0 15px rgba(56, 189, 248, 0.2); }
+    
+    .highlight input { background: rgba(245, 158, 11, 0.05); border-color: rgba(245, 158, 11, 0.5); color: #fcd34d; font-size: 1.1rem; }
+    .highlight input:focus { border-color: #f59e0b; box-shadow: 0 0 20px rgba(245, 158, 11, 0.3); }
+    
+    .input-km-novo { background: rgba(56, 189, 248, 0.1); border: 1px solid #38bdf8; color: #ffffff; padding: 6px 12px; border-radius: 6px; width: 90px; text-align: center; font-weight: 800; font-family: 'Outfit'; }
+    .input-km-novo:focus { outline: none; box-shadow: 0 0 15px rgba(56,189,248,0.4); }
+    
+    .table-wrapper { flex: 1; overflow-y: auto; padding-right: 12px; }
+    .table-wrapper::-webkit-scrollbar { width: 6px; }
+    .table-wrapper::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+    .table-wrapper::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+    
+    table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 0.95rem; color: #ffffff; }
+    th { padding: 16px 20px; color: #e2e8f0; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; font-size: 0.75rem; position: sticky; top: 0; background: rgba(5, 8, 15, 0.95); z-index: 10; border-bottom: 2px solid rgba(255,255,255,0.1); text-align: left; }
+    td { padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.05); transition: background 0.2s; color: #ffffff; font-weight: 400; }
+    
+    tbody tr { transition: transform 0.2s, background 0.2s; border-radius: 8px; }
+    tbody tr:hover td { background: rgba(255, 255, 255, 0.06); }
+    tbody tr:hover td:first-child { border-top-left-radius: 8px; border-bottom-left-radius: 8px; }
+    tbody tr:hover td:last-child { border-top-right-radius: 8px; border-bottom-right-radius: 8px; }
+    
+    .origem-dest { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+    .row-nova td { background: rgba(56, 189, 248, 0.1) !important; border-bottom: 1px solid rgba(56,189,248,0.3); }
+    .badge-nova { background: #38bdf8; color: #0f172a; padding: 4px 8px; border-radius: 6px; font-size: 0.65rem; font-weight: 900; margin-left: 12px; letter-spacing: 0.5px; box-shadow: 0 0 10px rgba(56,189,248,0.4); }
+    
+    .valor-projetado { color: #f59e0b; font-weight: 900; font-size: 1.1rem; letter-spacing: 0.5px; text-shadow: 0 0 10px rgba(245,158,11,0.3); }
+    .valor-antigo { color: #cbd5e1; font-weight: 600; margin-right: 8px; font-size: 0.95rem; }
+</style>
+"
+
+// 6. Javascript Mágico - Totalmente reescrito em JS Baixo Nível (Compatível com 100% dos navegadores, sem templates literals ou arrow functions que podem quebrar no iFrame)
+VAR _JS = "
+<script>
+    setTimeout(function() {
+        try {
+            var rotasHistory = " & _JSON_Rotas & ";
+            var inOrigem = document.getElementById('inpOrigem');
+            var inDestino = document.getElementById('inpDestino');
+            var inDiesel = document.getElementById('inpDiesel');
+            var tBody = document.getElementById('tblBody');
+            
+            if (!tBody) {
+                document.body.innerHTML += '<h2 style=""color:red; z-index:9999;"">Erro: Elemento da tabela nao encontrado no HTML</h2>';
+                return;
+            }
+
+            var fmtBr = function(val) { return parseFloat(val).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }); };
+            var parseSafeFloat = function(val) { return parseFloat(String(val).replace(',', '.')) || 0; };
+            
+            function renderTable() {
+                try {
+                    var txtO = inOrigem.value.toLowerCase().trim();
+                    var txtD = inDestino.value.toLowerCase().trim();
+                    var precoD = parseFloat(inDiesel.value) || 0;
+                    var consumoMedio = 3.0; // km/l assumido
+                    
+                    if (!rotasHistory || rotasHistory.length === 0) {
+                        tBody.innerHTML = '<tr><td colspan=""5"" style=""text-align:center; padding: 30px;"">Nenhum dado encontrado no Array de Rotas. <br>Certifique-se que o Power BI esta com os filtros limpos.</td></tr>';
+                        return;
+                    }
+
+                    // Ordena
+                    var rotasOrdenadas = rotasHistory.slice().sort(function(a,b) { 
+                        var aOr = a.origem ? String(a.origem) : '';
+                        var bOr = b.origem ? String(b.origem) : '';
+                        return aOr.localeCompare(bOr);
+                    });
+                    
+                    var rotasEncontradas = [];
+                    
+                    if (txtO === '' && txtD === '') {
+                        rotasEncontradas = rotasOrdenadas;
+                    } else {
+                        rotasEncontradas = rotasOrdenadas.filter(function(r) {
+                            var rO = r.origem ? String(r.origem).toLowerCase() : '';
+                            var rD = r.destino ? String(r.destino).toLowerCase() : '';
+                            var matchO = (txtO === '') || (rO.indexOf(txtO) > -1);
+                            var matchD = (txtD === '') || (rD.indexOf(txtD) > -1);
+                            return matchO && matchD;
+                        });
+                    }
+                    
+                    var htmlContent = '';
+                    
+                    if (txtO !== '' && txtD !== '' && rotasEncontradas.length === 0) {
+                        tBody.innerHTML = '<tr class=""row-nova""><td>' + inOrigem.value.toUpperCase() + ' <span class=""badge-nova"">NOVA ROTA</span></td><td>' + inDestino.value.toUpperCase() + '</td><td><input type=""number"" id=""inpNovoKm"" class=""input-km-novo"" placeholder=""KM?"" /></td><td>R$ 0,00</td><td class=""valor-projetado"" id=""tdProjetadoNovo"">Aguardando KM...</td></tr>';
+                        
+                        var inpNovo = document.getElementById('inpNovoKm');
+                        if (inpNovo) {
+                            inpNovo.addEventListener('input', function(e) {
+                                var km = parseFloat(e.target.value) || 0;
+                                var projected = (km / consumoMedio) * precoD;
+                                document.getElementById('tdProjetadoNovo').innerText = fmtBr(projected);
+                            });
+                        }
+                        return;
+                    }
+                    
+                    rotasEncontradas.forEach(function(r) {
+                        var km = parseSafeFloat(r.km);
+                        var custoAntigo = parseSafeFloat(r.custoAntigo);
+                        var projected = (km / consumoMedio) * precoD;
+                        
+                        htmlContent += '<tr><td>' + r.origem + '</td><td>' + r.destino + '</td><td>' + km + ' km</td><td><span class=""valor-antigo"">' + fmtBr(custoAntigo) + '</span></td><td class=""valor-projetado"">' + fmtBr(projected) + '</td></tr>';
+                    });
+                    
+                    tBody.innerHTML = htmlContent;
+                } catch (e) {
+                    tBody.innerHTML = '<tr><td colspan=""5"" style=""color: red;"">Erro na Funcao Render: ' + e.message + '</td></tr>';
+                }
+            }
+
+            inOrigem.addEventListener('input', renderTable);
+            inDestino.addEventListener('input', renderTable);
+            inDiesel.addEventListener('input', renderTable);
+            
+            renderTable();
+        } catch (e) {
+            document.body.innerHTML += '<div style=""position:absolute; top:0; left:0; width:100%; color:red; background:white; padding:20px; z-index:9999;"">ERRO GRAVE JS: ' + e.message + '</div>';
+        }
+    }, 150); // Aguarda 150ms para garantir que o DOM HTML Content carregou
+</script>
+"
+
+// 7. Retorno da Medida Consolidada
+RETURN _CSS & _HTML & _JS

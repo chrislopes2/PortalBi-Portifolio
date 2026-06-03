@@ -449,6 +449,9 @@ ul   { list-style: none; }
   cursor: pointer;
   accent-color: var(--accent);
   flex-shrink: 0;
+  width: auto !important;
+  margin: 0;
+  box-shadow: none !important;
 }
 
 /* ── Responsive ──────────────────────────────────────────────── */

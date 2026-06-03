@@ -125,7 +125,7 @@ function refreshDashView() {
   }
 }
 
-const CAT_ICONS = { financeiro:"📊", comercial:"💼", operacional:"⚙️", rh:"👥" };
+const CAT_ICONS = { financeiro:"📊", comercial:"💼", operacional:"⚙️", rh:"👥", logistica:"🚚" };
 
 function renderDashList() {
   if (!state.reports.length) {
